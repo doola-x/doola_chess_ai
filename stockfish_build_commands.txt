@@ -1,0 +1,5 @@
+stockfish build commands
+make clean 
+make -j profile-build ARCH=x86-64-sse41-popcnt  
+make net
+./stockfish
