@@ -1,4 +1,4 @@
-# plan to build out a gui for stockfish
+# build plan
   
 ## goals
   * build a gui with SFML (simple and fast media layer) to communicate with the stockfish engine
