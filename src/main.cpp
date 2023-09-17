@@ -1,5 +1,5 @@
 // main.cpp
-#include <assets/SFMLWindow.hpp>
+#include "SFML"
 
 int main() {
 
