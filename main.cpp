@@ -1,3 +1,4 @@
+#include <iostream>
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
@@ -9,14 +10,6 @@ int main() {
         // run the program as long as the window is open
     while (window.isOpen())
     {
-        // check all the window's events that were triggered since the last iteration of the loop
-        sf::Event event;
-        while (window.pollEvent(event))
-        {
-            // "close requested" event: we close the window
-            if (event.type == sf::Event::Closed)
-                window.close();
-        }
 
         // clear the window with black color
         window.clear(sf::Color::Black);
@@ -49,6 +42,30 @@ int main() {
 		window.draw(sprite);
         // end the current frame
         window.display();
+        
+        // check all the window's events that were triggered since the last iteration of the loop
+        sf::Event event;
+		// while there are pending events...
+		while (window.pollEvent(event))
+		{
+		    // check the type of the event...
+		    switch (event.type)
+		    {
+		        // window closed
+		        case sf::Event::Closed:
+		            window.close();
+		            break;
+
+		        // mouse click
+		        case sf::Event::MouseButtonPressed:
+		        	std::cout << "mouse button pressed";
+		        	break;
+
+		        // we don't process other types of events
+		        default:
+		            break;
+		    }
+		}
     }
     return 0;
 
