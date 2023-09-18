@@ -22,7 +22,7 @@ int main() {
         window.clear(sf::Color::Black);
 
         sf::Font font;
-        if (!font.loadFromFile("GamiliaDemoRegular-d9DL7.ttf"))
+        if (!font.loadFromFile("fonts/GamiliaDemoRegular-d9DL7.ttf"))
         {
         	//error...
         }
@@ -38,7 +38,7 @@ int main() {
         window.draw(text);
 
         sf::Texture texture;
-		if (!texture.loadFromFile("board2.png"))
+		if (!texture.loadFromFile("images/board2.png"))
 		{
 		    // error...
 		}
