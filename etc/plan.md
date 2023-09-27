@@ -16,3 +16,7 @@ what i can do for now is create the UserInterface class and the Chessboard class
 ## updated ideas and goals, sept. 17 2023
 
 working with SFML has been an instructive (and difficult) challenge but i have some basic event handling going along with a window and a sprite. new plan is to figure out how to construct a chessboard style clickable-grid. i also want to seperate window startup functionality into another file.. (window_startup.cpp?)
+
+## updated thots and planz sept. 26 2023
+
+i have the grid clickable, although it is a fixed grid and if the window is manipulated at all it gets out of wack. i've began defining classes for square and piece, and the goal for the next week or so is to define sub-classes of piece for all the different types (pawn, rook, bishop, knight, king, queen). beginning to remember about header files and c++ development rules (famous last words). will continue on for now .... (jus bild it)
