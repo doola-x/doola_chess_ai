@@ -1,39 +1,22 @@
-#include <iostream>
+#include "Square.cpp"
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
-
-std::string getSquare(int coordX, int coordY){
-	std::string square;
-	int squareDimension = 480/8;
-
-	// 480 / 8 = 60. 
-	//for every 60, rank and file increase 
-	int rank[8] = {8, 7, 6, 5, 4, 3, 2, 1};
-	char file[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
-
-	int fileIdx = coordX / squareDimension;
-	char rankIdx = coordY / squareDimension;
-
-	square += file[fileIdx];
-	square += std::to_string(rank[rankIdx]);
-
-	return square;
-}
 
 int main() {
 
     // Create a window
     sf::RenderWindow window(sf::VideoMode(800, 500), "doola chess");
-        // run the program as long as the window is open
+	sf::Clock debounceClock;  
 
     while (window.isOpen())
-    {
+    {      // timer to measure time intervals
     	// check all the window's events that were triggered since the last iteration of the loop
         sf::Event event;
 		// while there are pending events...
 		while (window.pollEvent(event))
 		{
+			sf::Time elapsed = debounceClock.restart();
 		    // check the type of the event...
 		    switch (event.type)
 		    {
@@ -46,15 +29,18 @@ int main() {
 		        case sf::Event::MouseButtonPressed:
 		            if (event.mouseButton.button == sf::Mouse::Left) {
 		                sf::Vector2i mousePos = sf::Mouse::getPosition(window);
-		                std::cout << "Mouse Clicked at Position and Square: (" << mousePos.x << ", " << mousePos.y << ")" << std::endl;
-		                std::cout << getSquare(mousePos.x, mousePos.y) << std::endl;
+		                elapsed = debounceClock.restart();
+
+		                std::cout << "Mouse Clicked at Sqaure: (" << Square::getSquare(mousePos.x, mousePos.y)<< ")" << std::endl;
+		                std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
 		            }
 		        // mouse released
 	            case sf::Event::MouseButtonReleased:
-	                if (event.mouseButton.button == sf::Mouse::Left) {
+	                if (event.mouseButton.button == sf::Mouse::Left && elapsed.asSeconds() > 0.01) {
 	                    sf::Vector2i releasePos = sf::Mouse::getPosition(window);
-	                    std::cout << "Mouse Released at Position and Sqaure: (" << releasePos.x << ", " << releasePos.y << ")" << std::endl;
-	                    std::cout << getSquare(releasePos.x, releasePos.y) << std::endl;
+
+	                    std::cout << "Mouse Released at Sqaure: (" << Square::getSquare(releasePos.x, releasePos.y)<< ")" << std::endl;
+	                    std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
 	                }
 
 		        // we don't process other types of events
