@@ -1,14 +1,17 @@
 #include <iostream>
 #include "Piece.hpp"
 
+using namespace std;
+
 class Square {
 public:
 	int rank;
 	char file;
-	Piece piece;
 
-	Square(int _rank, char _file, Piece _piece);
+	Square();
 	~Square();
 
-	std::string static getSquare(int coordX, int coordY);
+	Square(int _rank, char _file);
+	
+	string static getSquare(int coordX, int coordY);
 };
