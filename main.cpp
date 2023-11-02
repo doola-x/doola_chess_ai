@@ -8,7 +8,7 @@ int main() {
     //create a game
     Game game;
     //create a debounce clock
-	sf::Clock debounceClock;  
+	sf::Clock debounceClock;
 
     while (game.IsRunning())
     {
@@ -17,7 +17,6 @@ int main() {
 
 		//renders screen (eventually this should handle pieces placement)
 		game.Render();
-
     }
 
     return EXIT_SUCCESS;

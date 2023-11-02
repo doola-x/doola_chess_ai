@@ -52,39 +52,41 @@ void Game::Update(sf::Clock dBounce) {
 	HandleEvents(dBounce);
 }
 
+void Game::RenderBoard() {
+	//do some board rendering
+	if (!texture.loadFromFile("images/board2.png"))
+	{
+	    // error...
+	}
+
+	board_sprite.setTexture(texture);
+	board_sprite.setPosition(sf::Vector2f(10.f, 10.f)); // absolute position
+	game_window.draw(board_sprite);
+}
+
+
+void Game::RenderPieces() {
+	//do some piece rendering
+	if (!texture.loadFromFile("images/tatiana/pw.png"))
+	{
+	    // error...
+	}
+	float startX = 3.5f;
+
+	for (int i = 0; i < 8; i++){
+		piece_sprite.setTexture(texture);
+		piece_sprite.setScale(.4f, .4f);
+		piece_sprite.setPosition(sf::Vector2f(startX, 360.f)); // absolute position
+		game_window.draw(piece_sprite);
+		startX = startX + 60.1f;
+	}
+}
+
 void Game::Render() {
-	       // clear the window with black color
-        game_window.clear(sf::Color::Black);
-
-        sf::Font font;
-        if (!font.loadFromFile("fonts/GamiliaDemoRegular-d9DL7.ttf"))
-        {
-        	//error...
-        }
-
-        sf::Text text;
-        text.setFont(font);
-        text.setString("doola chess bot");
-        text.setCharacterSize(16);
-        text.setFillColor(sf::Color::White);
-        text.setStyle(sf::Text::Bold | sf::Text::Underlined);
-        text.setPosition(sf::Vector2f(500.f, 1.f));
-
-        game_window.draw(text);
-
-        sf::Texture texture;
-		if (!texture.loadFromFile("images/board2.png"))
-		{
-		    // error...
-		}
-
-		sf::Sprite sprite;
-		sprite.setTexture(texture);
-		sprite.setPosition(sf::Vector2f(10.f, 10.f)); // absolute position
-		game_window.draw(sprite);
-        // end the current frame
-
-        game_window.display();
+	game_window.clear(sf::Color::Black);
+	Game::RenderBoard();
+	Game::RenderPieces();
+	game_window.display();
 }
 
 void Game::InitWindow() {
