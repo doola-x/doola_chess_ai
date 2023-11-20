@@ -1,6 +1,5 @@
-#include <SFML/System.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/Graphics.hpp>
+#pragma once
+#include "Square.hpp"
 
 class Game {
 public: 
@@ -16,10 +15,16 @@ public:
 
 	sf::RenderWindow game_window;
 	sf::Event game_event;
-	sf::Texture texture;
+	sf::Texture board_texture;
+	sf::Texture pawn_texture;
+	sf::Texture rook_texture;
 	sf::Sprite board_sprite;
 	sf::Sprite piece_sprite;
+	sf::Sprite rook_sprite;
+	Square* allSquares[64];
+
 private:
 	void InitWindow();
+	void InitGame();
 	void HandleEvents(sf::Clock dBounce);
 };

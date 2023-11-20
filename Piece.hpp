@@ -1,13 +1,14 @@
+#pragma once
 #include <iostream>
-using namespace std;
-
 class Piece {
 public:
 	int allegience;
-	string type;
+	char type;
 
 	Piece();
 	~Piece();
 
-	Piece(int _allegience, string type);
+	Piece(int _allegience, char type);
+
+	char getType();
 };

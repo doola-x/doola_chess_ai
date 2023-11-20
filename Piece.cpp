@@ -1,18 +1,19 @@
-#include "app.hpp"
 #include "Piece.hpp"
 
-using namespace std;
-
 Piece::Piece(){
-	this.alligience = 0;
-	this.type = "undefined";
+	this->allegience = 0;
+	this->type = 'u';
+}
+
+Piece::Piece(int _allegience, char _type){
+	this->allegience = _allegience;
+	this->type = _type;
+}
+
+char Piece::getType() {
+	return this->type;
 }
 
 Piece::~Piece(){
 	delete this;
-}
-
-Piece::Piece(int _allegience, string _type){
-	this.alligience = _allegience;
-	this.type = _type;
 }

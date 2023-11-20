@@ -1,17 +1,20 @@
+#pragma once
+
 #include <iostream>
 #include "Piece.hpp"
 
-using namespace std;
-
 class Square {
 public:
-	int rank;
+	char rank;
 	char file;
+	Piece* piece;
 
 	Square();
+	Square(char _file, char _rank);
 	~Square();
-
-	Square(int _rank, char _file);
 	
-	string static getSquare(int coordX, int coordY);
+	std::string static getSquareFromClick(int coordX, int coordY);
+
+	std::array<float, 2> getCoordsFromSquare();
+
 };

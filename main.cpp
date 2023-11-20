@@ -1,7 +1,8 @@
-#include "Game.cpp"
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include "Game.hpp"
+#include "Square.hpp"
 
 int main() {
 
@@ -12,10 +13,7 @@ int main() {
 
     while (game.IsRunning())
     {
-    	//handles events
     	game.Update(debounceClock);
-
-		//renders screen (eventually this should handle pieces placement)
 		game.Render();
     }
 
