@@ -66,8 +66,6 @@ void Game::HandleEvents(sf::Clock dBounce){
 
 void Game::RenderBoard() {
 	//do some board rendering
-	board_sprite.setTexture(board_texture);
-	board_sprite.setPosition(sf::Vector2f(10.f, 10.f)); // absolute position
 	game_window.draw(board_sprite);
 }
 
@@ -83,35 +81,79 @@ void Game::RenderPieces() {
 		//
 	for (int i = 0; i < 64; i++){
 		//allsquares[i] is our piece to render 
-		switch (allSquares[i]->piece->getType()){
-			case 'p':
-				piece_sprite.setTexture(pawn_texture);
-				piece_sprite.setScale(.38f, .38f);
+		if (allSquares[i]->piece != nullptr){
+			std::array<float, 2> squareToRender = allSquares[i]->getCoordsFromSquare();
+			if (allSquares[i]->piece->getType() == 'p'){
 				if (allSquares[i]->piece->allegience == 0){
 					//white pawn
-					std::array<float, 2> squareToRender = allSquares[i]->getCoordsFromSquare();
-					piece_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					pawn_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(pawn_sprite);
 				} else {
 					//black pawn
-					std::array<float, 2> squareToRender = allSquares[i]->getCoordsFromSquare();
-					piece_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					b_pawn_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_pawn_sprite);
 				}
-				game_window.draw(piece_sprite);
-
-			case 'r':
-				rook_sprite.setTexture(rook_texture);
-				rook_sprite.setScale(.38f, .38f);
-
+			}
+				
+			if (allSquares[i]->piece->getType() == 'r'){				
 				if (allSquares[i]->piece->allegience == 0){
 					//white rook
-					std::array<float, 2> squareToRender = allSquares[i]->getCoordsFromSquare();
 					rook_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(rook_sprite);
 				} else {
 					//black rook
-					std::array<float, 2> squareToRender = allSquares[i]->getCoordsFromSquare();
-					rook_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					b_rook_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_rook_sprite);
 				}
-				game_window.draw(rook_sprite);
+			}
+
+			if (allSquares[i]->piece->getType() == 'n'){				
+				if (allSquares[i]->piece->allegience == 0){
+					//white rook
+					knight_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(knight_sprite);
+				} else {
+					//black rook
+					b_knight_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_knight_sprite);
+				}
+			}
+
+			if (allSquares[i]->piece->getType() == 'b'){				
+				if (allSquares[i]->piece->allegience == 0){
+					//white rook
+					bishop_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(bishop_sprite);
+				} else {
+					//black rook
+					b_bishop_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_bishop_sprite);
+				}
+			}
+
+			if (allSquares[i]->piece->getType() == 'k'){				
+				if (allSquares[i]->piece->allegience == 0){
+					//white rook
+					king_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(king_sprite);
+				} else {
+					//black rook
+					b_king_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_king_sprite);
+				}
+			}
+
+			if (allSquares[i]->piece->getType() == 'q'){				
+				if (allSquares[i]->piece->allegience == 0){
+					//white rook
+					queen_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(queen_sprite);
+				} else {
+					//black rook
+					b_queen_sprite.setPosition(sf::Vector2f(squareToRender[0], squareToRender[1])); // absolute position
+					game_window.draw(b_queen_sprite);
+				}
+			}
 		}
 	}
 
@@ -156,16 +198,91 @@ void Game::InitGame() {
 	{
 	    // error...
 	}
+	pawn_sprite.setTexture(pawn_texture);
+	pawn_sprite.setScale(.38f, .38f);
+
+	if (!b_pawn_texture.loadFromFile("images/tatiana/pb.png")){
+		// error...
+	}
+	b_pawn_sprite.setTexture(b_pawn_texture);
+	b_pawn_sprite.setScale(.38f, .38f);
 
 	if (!rook_texture.loadFromFile("images/tatiana/rw.png"))
 	{
 		// error...
 	}
+	rook_sprite.setTexture(rook_texture);
+	rook_sprite.setScale(.38f, .38f);
+
+	if (!b_rook_texture.loadFromFile("images/tatiana/rb.png"))
+	{
+		// error...
+	}
+	b_rook_sprite.setTexture(b_rook_texture);
+	b_rook_sprite.setScale(.38f, .38f);
+
+	if (!knight_texture.loadFromFile("images/tatiana/nw.png"))
+	{
+		// error...
+	}
+	knight_sprite.setTexture(knight_texture);
+	knight_sprite.setScale(.38f, .38f);
+
+	if (!b_knight_texture.loadFromFile("images/tatiana/nb.png"))
+	{
+		// error...
+	}
+	b_knight_sprite.setTexture(b_knight_texture);
+	b_knight_sprite.setScale(.38f, .38f);
+
+	if (!bishop_texture.loadFromFile("images/tatiana/bw.png"))
+	{
+		// error...
+	}
+	bishop_sprite.setTexture(bishop_texture);
+	bishop_sprite.setScale(.38f, .38f);
+
+	if (!b_bishop_texture.loadFromFile("images/tatiana/bb.png"))
+	{
+		// error...
+	}
+	b_bishop_sprite.setTexture(b_bishop_texture);
+	b_bishop_sprite.setScale(.38f, .38f);
+
+	if (!king_texture.loadFromFile("images/tatiana/kw.png"))
+	{
+		// error...
+	}
+	king_sprite.setTexture(king_texture);
+	king_sprite.setScale(.38f, .38f);
+
+	if (!b_king_texture.loadFromFile("images/tatiana/kb.png"))
+	{
+		// error...
+	}
+	b_king_sprite.setTexture(b_king_texture);
+	b_king_sprite.setScale(.38f, .38f);
+
+	if (!queen_texture.loadFromFile("images/tatiana/qw.png"))
+	{
+		// error...
+	}
+	queen_sprite.setTexture(queen_texture);
+	queen_sprite.setScale(.38f, .38f);
+
+	if (!b_queen_texture.loadFromFile("images/tatiana/qb.png"))
+	{
+		// error...
+	}
+	b_queen_sprite.setTexture(b_queen_texture);
+	b_queen_sprite.setScale(.38f, .38f);
 
 	if (!board_texture.loadFromFile("images/board2.png"))
 	{
 	    // error...
 	}
+	board_sprite.setTexture(board_texture);
+	board_sprite.setPosition(sf::Vector2f(10.f, 10.f)); // absolute position
 }
 
 bool Game::IsRunning() {
