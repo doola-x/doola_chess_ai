@@ -42,6 +42,7 @@ public:
 	sf::Sprite queen_sprite;
 	sf::Sprite b_queen_sprite;	
 	Square* allSquares[64];
+	int selectedSquare;
 
 private:
 	void InitWindow();

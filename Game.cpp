@@ -42,10 +42,23 @@ void Game::HandleEvents(sf::Clock dBounce){
 	        // mouse click
 	        case sf::Event::MouseButtonPressed:
 	            if (game_event.mouseButton.button == sf::Mouse::Left) {
+
 	                sf::Vector2i mousePos = sf::Mouse::getPosition(game_window);
 	                elapsed = dBounce.restart();
 
-	                std::cout << "Clicked at Sqaure: (" << Square::getSquareFromClick(mousePos.x, mousePos.y)<< ")" << std::endl;
+	                std::string sqr = Square::getSquareFromClick(mousePos.x, mousePos.y);
+	                //mark square as clicked for move pieces
+	                char file = sqr[0];
+	                //implicit cast of char to int, subtract ascii val of '0' first
+	                int rank = sqr[1] - '0';
+	                int fileMult = file - 'a';
+	                int rankMult = 8 * (rank - 1);
+
+	                std::cout << "Square no.: " << rankMult + fileMult << std::endl;
+
+	                selectedSquare = rankMult+fileMult;
+
+	                std::cout << "Clicked at Sqaure: (" << sqr << ")" << std::endl;
 	                std::cout << "Mouse at: (" << mousePos.x << "," << mousePos.y << ")"<< std::endl;
 	            }
 	        // mouse released
@@ -53,7 +66,20 @@ void Game::HandleEvents(sf::Clock dBounce){
                 if (game_event.mouseButton.button == sf::Mouse::Left && elapsed.asSeconds() > 0.001) {
                     sf::Vector2i releasePos = sf::Mouse::getPosition(game_window);
 
-                    std::cout << "Mouse Released at Sqaure: (" << Square::getSquareFromClick(releasePos.x, releasePos.y)<< ")" << std::endl;
+                    std::string sqr = Square::getSquareFromClick(releasePos.x, releasePos.y);
+                   	char file = sqr[0];
+                   	int rank = sqr[1] - '0';
+	                int fileMult = file - 'a';
+	                int rankMult = 8 * (rank - 1);
+
+	                if (selectedSquare){
+	                	char t = allSquares[selectedSquare]->piece->getType();
+	                	allSquares[rankMult+fileMult]->piece->type = t;
+
+	                }
+
+
+                    std::cout << "Mouse Released at Sqaure: (" << sqr << ")" << std::endl;
                     std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
                 }
 
@@ -181,17 +207,17 @@ void Game::InitGame() {
 	}
 
 	for (int i = 0; i < 8; i++){
-		allSquares[i]->piece = new Piece(0, pieceTypes[i]);
-		allSquares[63-i]->piece = new Piece(1, pieceTypes[i]);
+		allSquares[i]->piece = new Piece(0, pieceTypes[7-i], false);
+		allSquares[63-i]->piece = new Piece(1, pieceTypes[i], false);
 	}
 
 	for (int i = 8; i < 16; i++){
-		allSquares[i]->piece = new Piece(0, 'p');
-		allSquares[63-i]->piece = new Piece(1, 'p');
+		allSquares[i]->piece = new Piece(0, 'p', false);
+		allSquares[63-i]->piece = new Piece(1, 'p', false);
 	}
 
 	for (int i = 16; i < 48; i++){
-		allSquares[i]->piece = new Piece(-1, 'u');
+		allSquares[i]->piece = new Piece(-1, 'u', false);
 	}
 
 	if (!pawn_texture.loadFromFile("images/tatiana/pw.png"))
