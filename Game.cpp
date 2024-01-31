@@ -74,13 +74,25 @@ void Game::HandleEvents(sf::Clock dBounce){
 
 	                if (selectedSquare){
 	                	char t = allSquares[selectedSquare]->piece->getType();
-	                	allSquares[rankMult+fileMult]->piece->type = t;
+	                	int a = allSquares[selectedSquare]->piece->allegience;
 
+	                	allSquares[selectedSquare]->piece->type = 'u';
+	                	allSquares[selectedSquare]->piece->allegience = -1;
+
+	                	allSquares[rankMult+fileMult]->piece->type = t;
+	                	allSquares[rankMult+fileMult]->piece->allegience = a;
 	                }
 
 
                     std::cout << "Mouse Released at Sqaure: (" << sqr << ")" << std::endl;
                     std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
+                    Square* arrayptr = allSquares;
+                    if (rules->isCheckmate(arrayptr)){
+                    	std::cout << "Checkmate!" << std::endl;
+                    } else {
+                    	std::cout << "play on..." << std::endl;
+                    }
+
                 }
 
 	        // dont process other types of events
@@ -219,6 +231,8 @@ void Game::InitGame() {
 	for (int i = 16; i < 48; i++){
 		allSquares[i]->piece = new Piece(-1, 'u', false);
 	}
+
+	Rules rules;
 
 	if (!pawn_texture.loadFromFile("images/tatiana/pw.png"))
 	{

@@ -1,5 +1,6 @@
 #pragma once
 #include "Square.hpp"
+#include "Rules.hpp"
 
 class Game {
 public: 
@@ -42,6 +43,7 @@ public:
 	sf::Sprite queen_sprite;
 	sf::Sprite b_queen_sprite;	
 	Square* allSquares[64];
+	Rules* rules;
 	int selectedSquare;
 
 private:
