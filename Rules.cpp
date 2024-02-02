@@ -8,6 +8,6 @@ Rules::~Rules(){
 
 }
 
-int isCheckmate(Square* allSqaures){
+int Rules::isCheckmate(Square** allSqaures, int size){
 	return 0;
 }

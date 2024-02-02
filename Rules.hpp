@@ -3,11 +3,14 @@
 
 class Rules{
 public:
-	int members;
+	int wKingPos;
+	int bKingPos;
+	int wKingCheck;
+	int bKingCheck;
 
 	Rules();
 	~Rules();
 
-	int isCheckmate(Square* allSquares);
+	int isCheckmate(Square** allSquares, int size);
 
 };

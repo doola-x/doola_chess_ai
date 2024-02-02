@@ -11,6 +11,7 @@ public:
 	void Render();
 	void RenderBoard();
 	void RenderPieces();
+	void RulesCheck();
 
 	bool IsRunning();
 

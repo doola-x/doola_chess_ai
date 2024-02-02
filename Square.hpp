@@ -5,16 +5,16 @@
 
 class Square {
 public:
+	Piece* piece;
 	char rank;
 	char file;
-	Piece* piece;
+	bool white_vision;
+	bool black_vision;
 
 	Square();
 	Square(char _file, char _rank);
 	~Square();
 	
 	std::string static getSquareFromClick(int coordX, int coordY);
-
 	std::array<float, 2> getCoordsFromSquare();
-
 };

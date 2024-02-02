@@ -12,6 +12,10 @@ Game::Game() {
 
 Game::~Game(){
 	//destroy something
+	for (int i = 0; i < 64; i++){
+		delete allSquares[i]->piece;
+		delete allSquares[i];
+	}
 }
 
 void Game::Update(sf::Clock dBounce) {
@@ -23,6 +27,7 @@ void Game::Render() {
 	game_window.clear(sf::Color::Black);
 	Game::RenderBoard();
 	Game::RenderPieces();
+	Game::RulesCheck();
 	game_window.display();
 }
 
@@ -54,8 +59,6 @@ void Game::HandleEvents(sf::Clock dBounce){
 	                int fileMult = file - 'a';
 	                int rankMult = 8 * (rank - 1);
 
-	                std::cout << "Square no.: " << rankMult + fileMult << std::endl;
-
 	                selectedSquare = rankMult+fileMult;
 
 	                std::cout << "Clicked at Sqaure: (" << sqr << ")" << std::endl;
@@ -72,7 +75,7 @@ void Game::HandleEvents(sf::Clock dBounce){
 	                int fileMult = file - 'a';
 	                int rankMult = 8 * (rank - 1);
 
-	                if (selectedSquare){
+	                if (selectedSquare > -1 && selectedSquare < 64){
 	                	char t = allSquares[selectedSquare]->piece->getType();
 	                	int a = allSquares[selectedSquare]->piece->allegience;
 
@@ -81,18 +84,23 @@ void Game::HandleEvents(sf::Clock dBounce){
 
 	                	allSquares[rankMult+fileMult]->piece->type = t;
 	                	allSquares[rankMult+fileMult]->piece->allegience = a;
+
+	                	if (t == 'k'){
+	                		if (a){
+	                			rules->bKingPos = rankMult + fileMult;
+	                			std::cout << "new wbking pos: " << rules->bKingPos << std::endl;
+	                		} else {
+	                			rules->wKingPos = rankMult + fileMult;
+	                			std::cout << "new w king pos: " << rules->wKingPos << std::endl;
+	                		}
+	                	}
+
+	                	Game::RulesCheck();
 	                }
 
 
                     std::cout << "Mouse Released at Sqaure: (" << sqr << ")" << std::endl;
                     std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
-                    Square* arrayptr = allSquares;
-                    if (rules->isCheckmate(arrayptr)){
-                    	std::cout << "Checkmate!" << std::endl;
-                    } else {
-                    	std::cout << "play on..." << std::endl;
-                    }
-
                 }
 
 	        // dont process other types of events
@@ -219,20 +227,24 @@ void Game::InitGame() {
 	}
 
 	for (int i = 0; i < 8; i++){
-		allSquares[i]->piece = new Piece(0, pieceTypes[7-i], false);
-		allSquares[63-i]->piece = new Piece(1, pieceTypes[i], false);
+		allSquares[i]->piece = new Piece(0, pieceTypes[7-i]);
+		allSquares[63-i]->piece = new Piece(1, pieceTypes[i]);
 	}
 
 	for (int i = 8; i < 16; i++){
-		allSquares[i]->piece = new Piece(0, 'p', false);
-		allSquares[63-i]->piece = new Piece(1, 'p', false);
+		allSquares[i]->piece = new Piece(0, 'p');
+		allSquares[63-i]->piece = new Piece(1, 'p');
 	}
 
 	for (int i = 16; i < 48; i++){
-		allSquares[i]->piece = new Piece(-1, 'u', false);
+		allSquares[i]->piece = new Piece(-1, 'u');
 	}
 
-	Rules rules;
+	rules = new Rules();
+	rules->wKingPos = 4;
+	rules->bKingPos = 60;
+	rules->wKingCheck = 0;
+	rules->bKingCheck = 0;
 
 	if (!pawn_texture.loadFromFile("images/tatiana/pw.png"))
 	{
@@ -327,6 +339,12 @@ void Game::InitGame() {
 
 bool Game::IsRunning() {
 	return game_window.isOpen();
+}
+
+void Game::RulesCheck() {
+	if (rules->isCheckmate(allSquares, 64)) {
+		std::cout << "Checkmate!" << std::endl;
+	}
 }
 
 
