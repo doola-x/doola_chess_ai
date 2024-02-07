@@ -1,21 +1,33 @@
 import chess
 import os
 import re
+import json
 import numpy as np
+
+allgames = []
+allcolors = []
 
 def parse_pgn(raw_pgn):
     # Initialize a chess board
     board = chess.Board()
+    white = re.search(r'\[White "(.*?)"\]', raw_pgn)
+    black = re.search(r'\[Black "(.*?)"\]', raw_pgn)
+
+    # Determine your color
+    color = None
+
+    if white and white.group(1) == "doolasux":
+        color = 'white'
+    elif black and black.group(1) == "doolasux":
+        color = 'black'
 
     # Extract moves using regex or a chess library
     moves = extract_moves(raw_pgn)
-
+    print(moves)
     # Process each move
     processed_moves = []
-    print('start of moves')
     for move in moves:
         try:
-            print(move)
             board.push_san(move)
             # Convert the current board state to a numerical format
             board_state = board_to_numerical(board)
@@ -23,14 +35,63 @@ def parse_pgn(raw_pgn):
         except:
             #do nothing
             pass
-    return processed_moves
+    return processed_moves, color
 
 def extract_moves(raw_pgn):
     # Regex pattern to match SAN moves, ignoring annotations and metadata
-    move_pattern = r"\b(?:[a-hKQRBN][a-h1-8]?x?[a-h1-8](?:=[QRBN])?|O-O-O|O-O)\b"
-    moves = re.findall(move_pattern, raw_pgn, re.MULTILINE)
+    start_index = raw_pgn.find("\n\n")
+    if start_index == -1:
+        return []
 
-    return moves
+    # Find the end of the moves (e.g., using game result as marker)
+    end_markers = [" 1-0", " 0-1", " 1/2-1/2"]
+    end_index = len(raw_pgn)
+    for marker in end_markers:
+        index = raw_pgn.find(marker, start_index)
+        if index != -1:
+            end_index = index
+
+    moves_text = raw_pgn[start_index:end_index].strip()
+    moves = moves_text.split()
+
+    filtered_moves = []
+    for move in moves:
+        if move[0].isdigit() and '.' in move:  # Check if it's a move number
+            filtered_moves.append(move)
+        elif move[0] in 'abcdefghKQRBN':  # Check if it's a move
+            filtered_moves.append(move)
+
+    return extract_san_moves(filtered_moves)
+
+
+def is_valid_san(move):
+    if '}' in move:
+        return False
+    # Check for castling moves
+    if move in ['O-O', 'O-O-O']:
+        return True
+
+    # Check for normal moves (like 'e4', 'Nf3')
+    if len(move) >= 2 and move[0] in 'abcdefghNBRQK':
+        if move[-1] in '12345678+#':
+            return True
+
+    # Check for captures (like 'exd5')
+    if 'x' in move:
+        if len(move) >= 3 and move[0] in 'abcdefghNBRQK':
+            if move[-1] in '12345678+#':
+                return True
+
+    return False
+
+def extract_san_moves(elements):
+    combined_moves = []
+    for el in elements:
+        if is_valid_san(el):
+            combined_moves.append(el)
+
+    return combined_moves
+
 
 def board_to_numerical(board):
     # Define a mapping for pieces to indices in the one-hot vector
@@ -68,6 +129,7 @@ def read_and_process_files(directory):
     for filename in os.listdir(directory):
         if filename.endswith(".txt"):
             filepath = os.path.join(directory, filename)
+            print(filepath)
             
             # Read the content of the file
             with open(filepath, 'r') as file:
@@ -77,20 +139,13 @@ def read_and_process_files(directory):
             games = content.strip().split('\n\n\n')
 
             # Process each game
+            count = 0
             for game in games:
-                processed_game = parse_pgn(game)
-                append_to_txt("processed_games.txt", processed_game)
-
-def append_to_txt(file_name, data):
-    with open(file_name, 'a') as file:  # 'a' for append mode
-        count = 0
-        for item in data:
-            # Format the data as a string
-            formatted_data = str(item) + '\n'
-            file.write(formatted_data)
-            count+=1
-            print(count)
+                processed_game, color = parse_pgn(game)
+                allgames.append(processed_game)
+                np.savez_compressed(f'processed_games_{filename}.npz', states=processed_game)
 
 
-directory = "../data/raw_data"  # Change to your directory path
-all_processed_games = read_and_process_files(directory)
+directory = "../data/raw_data/"  # Change to your directory path
+read_and_process_files(directory)
+
