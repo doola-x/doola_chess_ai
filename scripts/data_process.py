@@ -4,12 +4,9 @@ import re
 import json
 import numpy as np
 
-allgames = []
-allcolors = []
-
 def parse_pgn(raw_pgn):
     # Initialize a chess board
-    board = chess.Board()
+    date = re.search(r'\[Date "(\d{4}\.\d{2}\.\d{2})"\]', raw_pgn)
     white = re.search(r'\[White "(.*?)"\]', raw_pgn)
     black = re.search(r'\[Black "(.*?)"\]', raw_pgn)
 
@@ -18,23 +15,31 @@ def parse_pgn(raw_pgn):
 
     if white and white.group(1) == "doolasux":
         color = 'white'
-    elif black and black.group(1) == "doolasux":
+    
+    if black and black.group(1) == "doolasux":
         color = 'black'
 
+    if date:
+        date = date.group(1)
     # Extract moves using regex or a chess library
     moves = extract_moves(raw_pgn)
-    print(moves)
+    print(color)
     # Process each move
     processed_moves = []
+    count = 1
+    board = chess.Board()
     for move in moves:
         try:
             board.push_san(move)
-            # Convert the current board state to a numerical format
-            board_state = board_to_numerical(board)
-            processed_moves.append(board_state)
-        except:
+            board_state = board.fen()
+            print(board_state)
+            #np.savez_compressed(f'../data/processed_games/processed_games_{date}_{count}.npz', states=board_state, color=color)
+        except Exception as error:
+            print(error)
+            print(f"illegal!")
             #do nothing
             pass
+        count+=1
     return processed_moves, color
 
 def extract_moves(raw_pgn):
@@ -56,41 +61,9 @@ def extract_moves(raw_pgn):
 
     filtered_moves = []
     for move in moves:
-        if move[0].isdigit() and '.' in move:  # Check if it's a move number
+        if move[0] in 'abcdefghKQRBNO':  # Check if it's a move
             filtered_moves.append(move)
-        elif move[0] in 'abcdefghKQRBN':  # Check if it's a move
-            filtered_moves.append(move)
-
-    return extract_san_moves(filtered_moves)
-
-
-def is_valid_san(move):
-    if '}' in move:
-        return False
-    # Check for castling moves
-    if move in ['O-O', 'O-O-O']:
-        return True
-
-    # Check for normal moves (like 'e4', 'Nf3')
-    if len(move) >= 2 and move[0] in 'abcdefghNBRQK':
-        if move[-1] in '12345678+#':
-            return True
-
-    # Check for captures (like 'exd5')
-    if 'x' in move:
-        if len(move) >= 3 and move[0] in 'abcdefghNBRQK':
-            if move[-1] in '12345678+#':
-                return True
-
-    return False
-
-def extract_san_moves(elements):
-    combined_moves = []
-    for el in elements:
-        if is_valid_san(el):
-            combined_moves.append(el)
-
-    return combined_moves
+    return filtered_moves
 
 
 def board_to_numerical(board):
@@ -139,11 +112,9 @@ def read_and_process_files(directory):
             games = content.strip().split('\n\n\n')
 
             # Process each game
-            count = 0
+            
             for game in games:
                 processed_game, color = parse_pgn(game)
-                allgames.append(processed_game)
-                np.savez_compressed(f'processed_games_{filename}.npz', states=processed_game)
 
 
 directory = "../data/raw_data/"  # Change to your directory path

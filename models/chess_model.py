@@ -1,25 +1,29 @@
 import torch
 import torch.nn as nn
-from torch.utils.data import TensorDataset, DataLoader
 import numpy as np
 import os
+from torch.utils.data import TensorDataset, DataLoader
+from torch.nn.utils.rnn import pad_sequence
 
-directory = '../data/processed_games/'
+def collate_fn(batch):
+    sequences, labels = zip(*batch)
+    sequences_padded = pad_sequence(sequences, batch_first=True, padding_value=0)
+    labels = torch.stack(labels)
+    return sequences_padded, labels
 
-all_games = []  # List to store all game data
+directory = '../data/processed_games'
+
+tensors = []
 
 for filename in os.listdir(directory):
     if filename.endswith('.npz'):
         file_path = os.path.join(directory, filename)
         data = np.load(file_path)
-        games = data['states']  # Replace 'games' with the correct key if different
-        all_games.extend(games)
+        tensor = torch.from_numpy(data['states'])
+        tensors.append(tensor)
 
-print(all_games)
-
-# Assuming X_train and y_train are your data and labels
-train_dataset = TensorDataset(X_train, y_train)
-train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+tens_stack = torch.stack(tensors)
+train_loader = DataLoader(dataset=tens_stack, collate_fn=collate_fn, batch_size=32, shuffle=True)
 
 class ChessModel(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_layers=2):
