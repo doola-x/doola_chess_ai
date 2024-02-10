@@ -5,25 +5,35 @@ import os
 from torch.utils.data import TensorDataset, DataLoader
 from torch.nn.utils.rnn import pad_sequence
 
-def collate_fn(batch):
-    sequences, labels = zip(*batch)
-    sequences_padded = pad_sequence(sequences, batch_first=True, padding_value=0)
-    labels = torch.stack(labels)
-    return sequences_padded, labels
-
 directory = '../data/processed_games'
+sequences = []
 
-tensors = []
+for dirpath, dirnames, filenames in os.walk(directory):
+    if dirpath == directory:
+        continue
 
-for filename in os.listdir(directory):
-    if filename.endswith('.npz'):
-        file_path = os.path.join(directory, filename)
-        data = np.load(file_path)
-        tensor = torch.from_numpy(data['states'])
-        tensors.append(tensor)
+    print('Subdirectory:', dirpath)
+    sequence = []
+    #pad all 0's tensor to signal game start
+    sequence.append(torch.zeros((8, 8, 13)))
+    for filename in filenames:
+        if filename.endswith('.npz'):
+            file_path = os.path.join(dirpath, filename)
+            data = np.load(file_path)
+            
+            if 'states' in data:
+                tensor = torch.from_numpy(data['states'])
+                sequence.append(tensor)
+                print('Tensor shape:', tensor.shape)
+            else:
+                print(f"Key 'states' not found in {file_path}")
+    #arbitrary 1's padding to signal end of game
+    while (len(sequence) < 100):
+        sequence.append(torch.ones((8, 8, 13)))
+    sequences.append(sequence)
 
-tens_stack = torch.stack(tensors)
-train_loader = DataLoader(dataset=tens_stack, collate_fn=collate_fn, batch_size=32, shuffle=True)
+
+train_loader = DataLoader(dataset=sequences, batch_size=32, shuffle=True)
 
 class ChessModel(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_layers=2):
