@@ -5,17 +5,32 @@ import json
 import torch
 import numpy as np
 
+
+
 def parse_pgn(raw_pgn, count):
     moves = extract_moves(raw_pgn)
     processed_moves = []
     move_no = 1
+
     board = chess.Board()
-    for move in moves:
+    previous_state = -1
+    for i in range(0, len(moves)):
         try:
-            board.push_san(move)
-            board_state = board.fen()
-            tensor = fen_to_tensor(board_state)
-            np.savez_compressed(f'../data/processed_games/{count}/{move_no}.npz', states=tensor)
+            #push new move to check if legal
+            board.push_san(moves[i])
+
+            if (previous_state != -1):
+                #if previous state is set, that is the input state
+                tensor = fen_to_tensor(previous_state)
+            else:
+                #if start of game, 0s tensor
+                tensor = torch.zeros((8, 8, 13))
+
+            #set key and previous state for next iteration
+            key = moves[i]
+            previous_state = board.fen()
+
+            np.savez_compressed(f'../data/processed_games/{count}/{move_no}.npz', state=tensor, correct_move=key)
         except Exception as error:
             print("illegal!")
             print(error)
