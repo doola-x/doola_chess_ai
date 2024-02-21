@@ -30,7 +30,7 @@ def parse_pgn(raw_pgn, count):
             key = moves[i]
             previous_state = board.fen()
 
-            np.savez_compressed(f'../data/processed_games/{count}/{move_no}.npz', state=tensor, correct_move=key)
+            np.savez_compressed(f'../data/processed_games/{count}/{move_no}.npz', state=tensor, correct_move=key, fen=previous_state)
         except Exception as error:
             print("illegal!")
             print(error)
@@ -90,7 +90,7 @@ def fen_to_tensor(fen):
     return torch.tensor(board_tensor)
 
 def read_and_process_files(directory):
-    # List all PGN files in the directory
+    count=1
     for filename in os.listdir(directory):
         if filename.endswith(".txt"):
             filepath = os.path.join(directory, filename)
@@ -103,10 +103,10 @@ def read_and_process_files(directory):
             games = content.strip().split('\n\n\n')
 
             # Process each game
-            count = 1
             for game in games:
                 parse_pgn(game, count)
                 count+=1
+                
 
 
 directory = "../data/raw_data/"  # Change to your directory path

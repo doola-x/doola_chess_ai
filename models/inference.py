@@ -6,17 +6,28 @@ import json
 
 
 class ChessModel(nn.Module):
-    def __init__(self, input_size, output_size):
+    def __init__(self):
         super(ChessModel, self).__init__()
-        self.fc1 = nn.Linear(input_size, 128)
+        self.conv1 = nn.Conv2d(in_channels=13, out_channels=64, kernel_size=3, padding=1)
         self.relu = nn.ReLU()
-        self.fc2 = nn.Linear(128, output_size)
+        self.flatten = nn.Flatten()
+        # Assuming the output of conv layers is flattened, adjust the input size accordingly
+        # LSTM input dimensions: (batch_size, seq_len, features)
+        self.lstm = nn.LSTM(input_size=64 * 8 * 8, hidden_size=256, num_layers=2, batch_first=True)
+        self.fc = nn.Linear(256, 9010)
 
     def forward(self, x):
-        out = self.fc1(x)
-        out = self.relu(out)
-        out = self.fc2(out)
-        return out
+        x = x.permute(0, 3, 1, 2)
+        x = self.relu(self.conv1(x))
+        # Flatten the output for the LSTM
+        x = self.flatten(x)
+        # Reshape x to have a sequence length of 1, as each board state is independent
+        x = x.unsqueeze(1)  # batch_size x 1 x (64*8*8)
+        lstm_out, (hn, cn) = self.lstm(x)
+        # Only use the last hidden state
+        x = self.fc(lstm_out[:, -1, :])
+        return x
+model = ChessModel()
 
 def decode_move(value, filename='../data/moves.json'):
     """Decodes a move from the model's output integer back to SAN notation by loading a mapping from a file."""
@@ -63,18 +74,16 @@ def fen_to_tensor(fen):
     return torch.tensor(board_tensor)
 
 def main(fen):
-    model = ChessModel(input_size=832, output_size=9010) 
+    model = ChessModel() 
 
     # Load the model weights
-    model.load_state_dict(torch.load('model_epoch_50.pth'))
+    model.load_state_dict(torch.load('model_epoch_31.pth'))
     model.eval()
 
     tensor = fen_to_tensor(fen)
-
+    tensor = tensor.unsqueeze(0)
     with torch.no_grad():
-        tensor_flattened = tensor.view(-1)  # This correctly flattens the entire tensor
-        tensor_flattened = tensor_flattened.unsqueeze(0) 
-        prediction = model(tensor_flattened.float())
+        prediction = model(tensor)
         predicted_move = prediction.argmax(dim=1)
 
         # Convert the predicted move from its encoded format back to a standard move format

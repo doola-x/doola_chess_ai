@@ -24,3 +24,9 @@ i have the grid clickable, although it is a fixed grid and if the window is mani
 ##update oct. 27 2023
 
 started seperating game functionality into its own class. things are making more sense each time i can find time to work on this (oof). i think the next logical step would be to get all the pieces to render, and **then** start building the piece class files. also need some game logic, like creating all the square and piece objects, game rules, etc.
+
+##update feb. 12 2024
+
+oh ya, the model fucking works btw :O watching it train and do inference is the most satisfying thing on the planet. the rules engine is still extremely early stages, and i need a way to determine legal moves as well. i think the model would benefit greatly from this as well.
+
+we did it joe
