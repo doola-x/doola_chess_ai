@@ -38,7 +38,6 @@ for dirpath, dirnames, filenames in os.walk(directory):
                 fen = data['fen'].item()
 
                 game_data.append((state_tensor, move, fen))
-                print('Tensor shape:', state_tensor.shape, 'Correct move:', move, 'Fen:', fen)
             else:
                 print(f"Required keys not found in {file_path}")
 
@@ -65,7 +64,7 @@ class ChessModel(nn.Module):
         self.flatten = nn.Flatten()
         # Assuming the output of conv layers is flattened, adjust the input size accordingly
         # LSTM input dimensions: (batch_size, seq_len, features)
-        self.lstm = nn.LSTM(input_size=64 * 8 * 8, hidden_size=256, num_layers=2, batch_first=True)
+        self.lstm = nn.LSTM(input_size=64 * 8 * 8, hidden_size=512, num_layers=2, batch_first=True)
         self.fc = nn.Linear(256, 9010)
 
     def forward(self, x):
@@ -81,7 +80,7 @@ class ChessModel(nn.Module):
         return x
 
 model = ChessModel()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 
 def are_legal_moves(moves, fens):
@@ -95,7 +94,7 @@ def are_legal_moves(moves, fens):
         except:
             #move is illegal
             illegal_cnt += 1
-            penalty_t[i] = 2
+            penalty_t[i] = 10
     return penalty_t, illegal_cnt
 
 # Assuming you've already defined your model, dataloader, criterion, and optimizer
