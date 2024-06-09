@@ -5,7 +5,11 @@ import json
 import torch
 import numpy as np
 
-
+piece_to_idx = {
+    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
+    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11,
+    ' ': 12  # Empty square
+}
 
 def parse_pgn(raw_pgn, count):
     moves = extract_moves(raw_pgn)
@@ -30,7 +34,7 @@ def parse_pgn(raw_pgn, count):
             key = moves[i]
             previous_state = board.fen()
 
-            np.savez_compressed(f'../data/processed_games/{count}/{move_no}.npz', state=tensor, correct_move=key)
+            np.savez_compressed(f'../data/processed_games_2/{count}/{move_no}.npz', state=tensor, correct_move=key, fen=previous_state)
         except Exception as error:
             print("illegal!")
             print(error)
@@ -59,12 +63,6 @@ def extract_moves(raw_pgn):
             filtered_moves.append(move)
     return filtered_moves
 
-piece_to_idx = {
-    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
-    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11,
-    ' ': 12  # Empty square
-}
-
 # Function to convert FEN to a tensor
 def fen_to_tensor(fen):
     board_tensor = np.zeros((8, 8, 13), dtype=np.float32)
@@ -90,7 +88,7 @@ def fen_to_tensor(fen):
     return torch.tensor(board_tensor)
 
 def read_and_process_files(directory):
-    # List all PGN files in the directory
+    count=1
     for filename in os.listdir(directory):
         if filename.endswith(".txt"):
             filepath = os.path.join(directory, filename)
@@ -103,10 +101,10 @@ def read_and_process_files(directory):
             games = content.strip().split('\n\n\n')
 
             # Process each game
-            count = 1
             for game in games:
                 parse_pgn(game, count)
                 count+=1
+                
 
 
 directory = "../data/raw_data/"  # Change to your directory path

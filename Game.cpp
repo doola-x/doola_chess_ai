@@ -1,33 +1,143 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
-
+#include <iostream>
+#include <string>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <arpa/inet.h>
+#include <functional>
 #include "Game.hpp"
 #include "Square.hpp"
 
 Game::Game() {
 	InitWindow();
 	InitGame();
+	InitSocket();
 }
 
 Game::~Game(){
 	//destroy something
-	for (int i = 0; i < 64; i++){
-		delete allSquares[i]->piece;
-		delete allSquares[i];
+    isRunning = false;
+    cv.notify_all();
+    if (commThread.joinable()) {
+        commThread.join();
+    }
+    close(sock);
+    for (int i = 0; i < 64; i++) {
+        delete allSquares[i]->piece;
+        delete allSquares[i];
+    }
+}
+
+void Game::InitSocket() {
+    sock = 0;
+    struct sockaddr_in serv_addr;
+
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
+        std::cout << "Socket creation error" << std::endl;
+        return;
+    }
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(65432);
+
+    if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
+        std::cout << "Invalid address/ Address not supported" << std::endl;
+        return;
+    }
+
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
+        std::cout << "Connection Failed" << std::endl;
+        return;
+    }
+
+    isRunning = true;
+    commThread = std::thread([this]() { this->CommWithPython(); });
+}
+
+
+void Game::CommWithPython() {
+    while (isRunning) {
+        std::string move;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait(lock, [this]() { return !moveQueue.empty() || !isRunning; });
+            if (!isRunning) break;
+            move = moveQueue.front();
+            moveQueue.pop();
+        }
+
+        // Send move to Python
+        send(sock, move.c_str(), move.length(), 0);
+
+        // Receive response from Python
+        char buffer[1024] = {0};
+        int valread = read(sock, buffer, 1024);
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            pythonResponse = std::string(buffer, valread);
+        }
+    }
+}
+
+int Game::SendMoveToPython(const std::string& move) {
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        moveQueue.push(move);
+    }
+    cv.notify_one();
+    return 0;
+}
+
+void Game::ProcessPythonResponse(const std::string& response) {
+	if (response == "O-O" || response == "O-O-O"){
+		std::cout << response << std::endl;
+		return;
 	}
+    char file = response[0];
+    int rank = response[1] - '0';
+    int fileMult = file - 'a';
+    int rankMult = 8 * (rank - 1);
+    selectedSquare = rankMult + fileMult;
+    std::cout << "Python selected square: " << selectedSquare << std::endl;
+
+    file = response[2];
+    rank = response[3] - '0';
+    fileMult = file - 'a';
+    rankMult = 8 * (rank - 1);
+    int dropSquare = rankMult + fileMult;
+
+    if (dropSquare > -1 && dropSquare < 64) {
+        if (selectedSquare > -1 && selectedSquare < 64) {
+            DoMove(dropSquare, false);
+            isUserTurn = true;
+        }
+    } else {
+        std::cout << "Illegal drop square!" << std::endl;
+    }
 }
 
 void Game::Update(sf::Clock dBounce) {
-	//do some updating
 	HandleEvents(dBounce);
+	std::string response;
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (!pythonResponse.empty()) {
+            response = pythonResponse;
+            pythonResponse.clear();
+        }
+    }
+    if (!response.empty()) {
+        ProcessPythonResponse(response);
+    }
 }
 
 void Game::Render() {
 	game_window.clear(sf::Color::Black);
 	Game::RenderBoard();
 	Game::RenderPieces();
-	Game::RulesCheck();
 	game_window.display();
 }
 
@@ -46,22 +156,21 @@ void Game::HandleEvents(sf::Clock dBounce){
 
 	        // mouse click
 	        case sf::Event::MouseButtonPressed:
+	        	move_str = "";
 	            if (game_event.mouseButton.button == sf::Mouse::Left) {
 
 	                sf::Vector2i mousePos = sf::Mouse::getPosition(game_window);
 	                elapsed = dBounce.restart();
 
-	                std::string sqr = Square::getSquareFromClick(mousePos.x, mousePos.y);
-	                //mark square as clicked for move pieces
-	                char file = sqr[0];
-	                //implicit cast of char to int, subtract ascii val of '0' first
-	                int rank = sqr[1] - '0';
+	                sqr_c = Square::getSquareFromClick(mousePos.x, mousePos.y);
+	                char file = sqr_c[0];
+	                int rank = sqr_c[1] - '0';
 	                int fileMult = file - 'a';
 	                int rankMult = 8 * (rank - 1);
 
 	                selectedSquare = rankMult+fileMult;
 
-	                std::cout << "Clicked at Sqaure: (" << sqr << ")" << std::endl;
+	                std::cout << "Clicked at Sqaure: (" << sqr_c << ")" << std::endl;
 	                std::cout << "Mouse at: (" << mousePos.x << "," << mousePos.y << ")"<< std::endl;
 	            }
 	        // mouse released
@@ -69,44 +178,110 @@ void Game::HandleEvents(sf::Clock dBounce){
                 if (game_event.mouseButton.button == sf::Mouse::Left && elapsed.asSeconds() > 0.001) {
                     sf::Vector2i releasePos = sf::Mouse::getPosition(game_window);
 
-                    std::string sqr = Square::getSquareFromClick(releasePos.x, releasePos.y);
-                   	char file = sqr[0];
-                   	int rank = sqr[1] - '0';
+                    sqr_r = Square::getSquareFromClick(releasePos.x, releasePos.y);
+                    char file = sqr_r[0];
+                   	int rank = sqr_r[1] - '0';
 	                int fileMult = file - 'a';
 	                int rankMult = 8 * (rank - 1);
-
-	                if (selectedSquare > -1 && selectedSquare < 64){
-	                	char t = allSquares[selectedSquare]->piece->getType();
-	                	int a = allSquares[selectedSquare]->piece->allegience;
-
-	                	allSquares[selectedSquare]->piece->type = 'u';
-	                	allSquares[selectedSquare]->piece->allegience = -1;
-
-	                	allSquares[rankMult+fileMult]->piece->type = t;
-	                	allSquares[rankMult+fileMult]->piece->allegience = a;
-
-	                	if (t == 'k'){
-	                		if (a){
-	                			rules->bKingPos = rankMult + fileMult;
-	                			std::cout << "new wbking pos: " << rules->bKingPos << std::endl;
-	                		} else {
-	                			rules->wKingPos = rankMult + fileMult;
-	                			std::cout << "new w king pos: " << rules->wKingPos << std::endl;
-	                		}
-	                	}
-
-	                	Game::RulesCheck();
+	                int dropSquare = rankMult + fileMult;
+	                if (dropSquare == selectedSquare) {
+	                	std::cout << "illegal move!" << std::endl;
+	                	break;
 	                }
+	                if (!isUserTurn) {
+	                	std::cout << "be patient!" << std::endl;
+	                	break;
+	                }
+                    if (dropSquare > -1 && dropSquare < 64){
+		                if (selectedSquare > -1 && selectedSquare < 64){
+							DoMove(dropSquare, true);
+		                }
+	                    std::cout << "Mouse Released at Sqaure: (" << sqr_r << ")" << std::endl;
+	                    std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
+                    } else {
+                    	std::cout << "Illegal drop square!" << std::endl;
+                    	move_str = "";
+                    }
 
-
-                    std::cout << "Mouse Released at Sqaure: (" << sqr << ")" << std::endl;
-                    std::cout << "Debounce clock time at: " << elapsed.asSeconds() << std::endl;
                 }
 
 	        // dont process other types of events
 	        default:
 	            break;
 	    }
+	}
+}
+
+void Game::DoMove(int dropSquare, bool send) {
+	// move game logic here
+	char t = allSquares[selectedSquare]->piece->getType();
+	int a = allSquares[selectedSquare]->piece->allegience;
+	char takes = allSquares[dropSquare]->piece->type;
+	char from_col = allSquares[selectedSquare]->file;
+
+	if (send) {
+		int valid = rules->isValidMove(t, dropSquare, selectedSquare, takes, allSquares);
+
+		if (valid < 0) {
+			std::cout << "invalid move" << std::endl;
+			return;
+		} else if (valid > 0) {
+			std::cout << "valid move" << std::endl;
+		}
+	}
+
+	move_str = "";
+	if (t == 'p'){
+		if (takes != 'u') {
+			move_str += sqr_c[0];
+		}
+	} else {
+		move_str += std::toupper(t);
+	}
+	if (t == 'r' || t == 'n') {
+		move_str += from_col;
+	}
+	if (takes != 'u') move_str += 'x';
+	move_str += sqr_r;
+	// check if move is castling
+	if (t == 'k'){
+		int spaces = (dropSquare - selectedSquare);
+		if (spaces == 2){
+			move_str = "O-O";
+		}
+		else if (spaces == -2){
+			std::cout << "move is long castles" << std::endl;
+			move_str = "O-O-O";
+		}
+	}
+	std::cout << "Processed move to pass: " << move_str << std::endl;
+	allSquares[selectedSquare]->piece->type = 'u';
+	allSquares[selectedSquare]->piece->allegience = -1;
+
+	allSquares[dropSquare]->piece->type = t;
+	allSquares[dropSquare]->piece->allegience = a;
+
+	if (move_str == "O-O"){
+		int rookSquare = -1;
+		allSquares[dropSquare - rookSquare]->piece->type = 'u';
+		allSquares[dropSquare - rookSquare]->piece->allegience = -1;
+
+		allSquares[dropSquare + rookSquare]->piece->type = 'r';
+		allSquares[dropSquare + rookSquare]->piece->allegience = a;
+	}
+	if (move_str == "O-O-O"){
+
+		int rookSquare = (a == 0 ? 1 : -1);
+		allSquares[dropSquare - (rookSquare*2)]->piece->type = 'u';
+		allSquares[dropSquare - (rookSquare*2)]->piece->allegience = -1;
+
+		allSquares[dropSquare + rookSquare]->piece->type = 'r';
+		allSquares[dropSquare + rookSquare]->piece->allegience = a;
+	}
+
+	if (send) {
+		SendMoveToPython(move_str);
+		isUserTurn = false;
 	}
 }
 
@@ -240,12 +415,6 @@ void Game::InitGame() {
 		allSquares[i]->piece = new Piece(-1, 'u');
 	}
 
-	rules = new Rules();
-	rules->wKingPos = 4;
-	rules->bKingPos = 60;
-	rules->wKingCheck = 0;
-	rules->bKingCheck = 0;
-
 	if (!pawn_texture.loadFromFile("images/tatiana/pw.png"))
 	{
 	    // error...
@@ -335,16 +504,13 @@ void Game::InitGame() {
 	}
 	board_sprite.setTexture(board_texture);
 	board_sprite.setPosition(sf::Vector2f(10.f, 10.f)); // absolute position
+
+	rules = new Rules();
+	isUserTurn = true;
 }
 
 bool Game::IsRunning() {
 	return game_window.isOpen();
-}
-
-void Game::RulesCheck() {
-	if (rules->isCheckmate(allSquares, 64)) {
-		std::cout << "Checkmate!" << std::endl;
-	}
 }
 
 

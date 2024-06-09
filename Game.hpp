@@ -1,8 +1,20 @@
 #pragma once
 #include "Square.hpp"
 #include "Rules.hpp"
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
 
 class Game {
+private:
+    std::thread commThread;
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::queue<std::string> moveQueue;
+    std::string pythonResponse;
+    bool isRunning;
 public: 
 	Game();
 	~Game();
@@ -11,8 +23,10 @@ public:
 	void Render();
 	void RenderBoard();
 	void RenderPieces();
-	void RulesCheck();
-
+	void DoMove(int dropSquare, bool send);
+	void CommWithPython();
+	int SendMoveToPython(const std::string& move);
+	void ProcessPythonResponse(const std::string& response);
 	bool IsRunning();
 
 	sf::RenderWindow game_window;
@@ -46,9 +60,15 @@ public:
 	Square* allSquares[64];
 	Rules* rules;
 	int selectedSquare;
+	int sock;
+	std::string sqr_c;
+	std::string sqr_r;
+	std::string move_str;
+	bool isUserTurn;
 
 private:
 	void InitWindow();
 	void InitGame();
+	void InitSocket();
 	void HandleEvents(sf::Clock dBounce);
 };

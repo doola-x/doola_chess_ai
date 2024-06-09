@@ -30,3 +30,14 @@
 *.exe
 *.out
 *.app
+*.pth
+
+.gitignore
+.DS_Store
+.vscode
+
+#folders
+/builds
+/data
+/models
+/SFML

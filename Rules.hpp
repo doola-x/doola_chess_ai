@@ -1,16 +1,13 @@
 #pragma once
-#import "Square.hpp"
+#include "Square.hpp"
 
-class Rules{
+class Rules {
 public:
-	int wKingPos;
-	int bKingPos;
-	int wKingCheck;
-	int bKingCheck;
-
 	Rules();
 	~Rules();
 
-	int isCheckmate(Square** allSquares, int size);
-
+	int isValidMove(char type, int dropSquare, int selectedSquare, char takes, Square* allSquares[64]);
+	int isValidPawnMove(int diff, char takes);
+	int isValidKnightMove(int diff, Square* allSquares[64]);
+	int isValidRookMove(int selectedSquare, int dropSquare, int diff, Square* allSquares[64]);
 };

@@ -7,12 +7,15 @@ stockfish build commands
 
 program build commands
 
-new cmd
-g++ *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system   
 
+new cmd
+g++ -std=c++11 -pthread *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
 	old cmd
-	g++ main.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
-	(with libs in system)
+	g++ *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
 
 		old old cmd
-		g++ -I /Users/jack/Dev/doola_chess_ai/SFML/include -o build main.cpp -L /Users/jack/Dev/doola_chess_ai/SFML/lib -lsfml-graphics -lsfml-window -lsfml-system
+		g++ main.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
+		(with libs in system)
+
+			old old old cmd
+			g++ -I /Users/jack/Dev/doola_chess_ai/SFML/include -o build main.cpp -L /Users/jack/Dev/doola_chess_ai/SFML/lib -lsfml-graphics -lsfml-window -lsfml-system

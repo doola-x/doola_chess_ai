@@ -1,14 +1,15 @@
 #include <SFML/System.hpp>
 #include <SFML/Window.hpp>
 #include <SFML/Graphics.hpp>
+#include <iostream>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/select.h>
 #include "Game.hpp"
 #include "Square.hpp"
 
 int main() {
-
-    //create a game
     Game game;
-    //create a debounce clock
 	sf::Clock debounceClock;
 
     while (game.IsRunning())
