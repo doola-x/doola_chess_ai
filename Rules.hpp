@@ -10,4 +10,5 @@ public:
 	int isValidPawnMove(int diff, char takes);
 	int isValidKnightMove(int diff, Square* allSquares[64]);
 	int isValidRookMove(int selectedSquare, int dropSquare, int diff, Square* allSquares[64]);
+	int isValidBishopMove(int selectedSquare, int dropSquare, int diff, Square* allSquares[64]);
 };
