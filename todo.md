@@ -19,8 +19,8 @@ rules engine (?)
 		- pawn (+)
 		- rook (+)
 		- knight (+)
-		- bishop ()
-		- queen ()
+		- bishop (+)
+		- queen (+)
 		- king ()
 	- when a user clicks while it is not their turn, no action is taken (+)
 	- when a user clicks and releases on the same square, no action is taken (+)
@@ -29,4 +29,4 @@ add support to play as black ( )
 	
 	- user selects black or white before play begins
 	- on selection, the piece rendering would also need to be flipped
-	- as simple as 
+	- simple as 

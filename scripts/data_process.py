@@ -34,7 +34,7 @@ def parse_pgn(raw_pgn, count):
             key = moves[i]
             previous_state = board.fen()
 
-            np.savez_compressed(f'../data/processed_games_2/{count}/{move_no}.npz', state=tensor, correct_move=key, fen=previous_state)
+            np.savez_compressed(f'../data/processed_games_3/{count}/{move_no}.npz', state=tensor, correct_move=key, fen=previous_state)
         except Exception as error:
             print("illegal!")
             print(error)
