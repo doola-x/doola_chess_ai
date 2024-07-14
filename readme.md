@@ -1,26 +1,39 @@
-# doola chess ai, a policy/value network with GUI developed and trained by me
-	- model/network architecture all developed with pytorch and numpy
-	- GUI in c++, using SFML (simple fast media layer)
-	- some shell scripts to fetch my public game data and util stuff
+[![SFML logo](https://www.sfml-dev.org/images/logo.png)](https://www.sfml-dev.org)
 
-# policy network
-	- the policy network is 3 layers:
-		- convolutional layer
-		- lstm layer
-		- final fully connected layers
-			- (i still don't fully understand what is going on here, but i have read alot about RNNs/CNNs and know that we are taking advantage of spatial reasoning as well as some form of memory with LSTM)
-	- the network takes in a tensor representation of a current board state 
-		- these tensors are created during the data processing phase using the function fen_to_tensor
-		- the "correct" move in any given position is the move that i played
+# SFML — Simple and Fast Multimedia Library
 
-# inference
-	- inference on the policy network works just like training.
-		- the main function takes a fen string, converts it to a tensor
-		- this tensor is used as input for the network, and the final layer has all 9010 legal moves mapped to an individual neuron
-		- the outputs are decoded, and the legal move with the highest activation score is provided as the suggested move
+SFML is a simple, fast, cross-platform and object-oriented multimedia API. It provides access to windowing, graphics, audio and network. It is written in C++, and has bindings for various languages such as C, .Net, Ruby, Python.
 
-# value network
-	- my current goal revolves around implementing a value network to operate a Sequential Monte Carlo planning mechanism's critic role
-	- i plan to manipulate the original 8x8x13 (positionxpiece_type) to 9x8x13 to account for activation scores of different tactical stratagies i enjoy using in my real games
-	- this new tensor would allow for a true value to be assigned to the current position based on possible discounted future rewards
-		- these rewards will be based on simple W/L as well as the tactics i define
+## Authors
+
+  - Laurent Gomila — main developer (laurent@sfml-dev.org)
+  - Marco Antognini — OS X developer (hiura@sfml-dev.org)
+  - Jonathan De Wachter — Android developer (dewachter.jonathan@gmail.com)
+  - Jan Haller (bromeon@sfml-dev.org)
+  - Stefan Schindler (tank@sfml-dev.org)
+  - Lukas Dürrenberger (eXpl0it3r@sfml-dev.org)
+  - binary1248 (binary1248@hotmail.com)
+  - Artur Moreira (artturmoreira@gmail.com)
+  - Mario Liebisch (mario@sfml-dev.org)
+  - And many other members of the SFML community
+
+## Download
+
+You can get the latest official release on [SFML's website](https://www.sfml-dev.org/download.php). You can also get the current development version from the [Git repository](https://github.com/SFML/SFML).
+
+## Install
+
+Follow the instructions of the [tutorials](https://www.sfml-dev.org/tutorials/), there is one for each platform/compiler that SFML supports.
+
+## Learn
+
+There are several places to learn SFML:
+
+  * The [official tutorials](https://www.sfml-dev.org/tutorials/)
+  * The [online API documentation](https://www.sfml-dev.org/documentation/)
+  * The [community wiki](https://github.com/SFML/SFML/wiki/)
+  * The [community forum](https://en.sfml-dev.org/forums/) ([French](https://fr.sfml-dev.org/forums/))
+
+## Contribute
+
+SFML is an open-source project, and it needs your help to go on growing and improving. If you want to get involved and suggest some additional features, file a bug report or submit a patch, please have a look at the [contribution guidelines](https://www.sfml-dev.org/contribute.php).

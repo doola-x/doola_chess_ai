@@ -12,38 +12,39 @@ import re
 from torch.utils.data import TensorDataset, DataLoader, Dataset
 from torch.nn.utils.rnn import pad_sequence
 
-directory = '../data/processed_games_3'
+directories = ('../data/processed_games_4', )
 move_dict = '../data/moves.json'
 game_data = []
 
 with open(move_dict, 'r') as file:
     move_dict = json.load(file)
 
+for directory in directories:
+    for dirpath, dirnames, filenames in os.walk(directory):
+        if directory != '..data/processed_tactics':
+            if dirpath == directory:
+                continue
 
-for dirpath, dirnames, filenames in os.walk(directory):
-    # if dirpath == directory:
-    #     continue
+        print('Subdirectory:', dirpath)
 
-    print('Subdirectory:', dirpath)
+        for filename in filenames:
+            if filename.endswith('.npz'):
+                file_path = os.path.join(dirpath, filename)
+                data = np.load(file_path)
 
-    for filename in filenames:
-        if filename.endswith('.npz'):
-            file_path = os.path.join(dirpath, filename)
-            data = np.load(file_path)
+                if 'state' in data and 'correct_move' in data and 'fen' in data:
+                    state_tensor = torch.from_numpy(data['state'])
 
-            if 'state' in data and 'correct_move' in data and 'fen' in data:
-                state_tensor = torch.from_numpy(data['state'])
+                    correct_move = data['correct_move'] 
+                    correct_move = str(correct_move)
+                    cleaned = re.sub(r"[+|#|=].*?(?=\s|$)", "", correct_move)
+                    move = move_dict[cleaned]
 
-                correct_move = data['correct_move'] 
-                correct_move = str(correct_move)
-                cleaned = re.sub(r"[+|#|=].*?(?=\s|$)", "", correct_move)
-                move = move_dict[cleaned]
+                    fen = data['fen'].item()
 
-                fen = data['fen'].item()
-
-                game_data.append((state_tensor, move, fen))
-            else:
-                print(f"Required keys not found in {file_path}")
+                    game_data.append((state_tensor, move, fen))
+                else:
+                    print(f"Required keys not found in {file_path}")
 
 class ChessDataset(Dataset):
     def __init__(self, game_data):
@@ -87,7 +88,7 @@ model = ChessModel()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 criterion = nn.CrossEntropyLoss()
 
-model.load_state_dict(torch.load('../models/model_epoch_30.pth'))
+model.load_state_dict(torch.load('../models/model_epoch_15.pth'))
 
 def are_legal_moves(moves, fens):
     penalty_t = torch.ones_like(moves, dtype=torch.float)
@@ -112,7 +113,7 @@ def adjust_logits(logits, legal_moves_masks):
     :return: Adjusted logits.
     """
     illegal_moves_penalty = -1e9
-    inverse_mask = 1 - mask  # This subtracts each element in mask from 1, effectively inverting it
+    inverse_mask = 1 - mask
     adjusted_logits = logits + (inverse_mask.float() * illegal_moves_penalty)   
     return adjusted_logits
 

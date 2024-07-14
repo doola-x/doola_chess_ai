@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include "Piece.hpp"
+#include <array>
 
 class Square {
 public:

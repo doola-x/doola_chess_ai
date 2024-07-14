@@ -10,6 +10,7 @@
 #include <functional>
 #include "Game.hpp"
 #include "Square.hpp"
+#include <array>
 
 Game::Game() {
 	InitWindow();

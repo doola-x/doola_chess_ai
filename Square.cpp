@@ -1,4 +1,5 @@
 #include "Square.hpp"
+#include <cmath>
 
 Square::Square()
 {

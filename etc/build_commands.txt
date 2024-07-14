@@ -8,6 +8,9 @@ stockfish build commands
 program build commands
 
 
+linux cmd
+em++ -std=c++11 -pthread *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
+g++ -std=c++11 -pthread *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
 new cmd
 g++ -std=c++11 -pthread *.cpp -o build -lsfml-window -lsfml-graphics -lsfml-system
 	old cmd
