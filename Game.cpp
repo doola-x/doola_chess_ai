@@ -10,6 +10,7 @@
 #include <functional>
 #include "Game.hpp"
 #include "Square.hpp"
+#include <array>
 
 Game::Game() {
 	InitWindow();
@@ -271,12 +272,12 @@ void Game::DoMove(int dropSquare, bool send) {
 	}
 	if (move_str == "O-O-O"){
 
-		int rookSquare = (a == 0 ? 1 : -1);
-		allSquares[dropSquare - (rookSquare*2)]->piece->type = 'u';
-		allSquares[dropSquare - (rookSquare*2)]->piece->allegience = -1;
+		int rookSquare = -1;
+		allSquares[dropSquare + (rookSquare * 2)]->piece->type = 'u';
+		allSquares[dropSquare + (rookSquare * 2)]->piece->allegience = -1;
 
-		allSquares[dropSquare + rookSquare]->piece->type = 'r';
-		allSquares[dropSquare + rookSquare]->piece->allegience = a;
+		allSquares[dropSquare - rookSquare]->piece->type = 'r';
+		allSquares[dropSquare - rookSquare]->piece->allegience = a;
 	}
 
 	if (send) {

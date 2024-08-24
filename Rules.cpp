@@ -31,10 +31,17 @@ int Rules::isValidMove(char type, int dropSquare, int selectedSquare, char takes
 		return i;
 	}
 	if (type == 'b'){
-		//bishop move check
+		int i = isValidBishopMove(selectedSquare, dropSquare, diff, allSquares);
+		return i;
 	}
 	if (type == 'q'){
-		//queen move check
+		int i = isValidRookMove(selectedSquare, dropSquare, diff, allSquares);
+		int j = isValidBishopMove(selectedSquare, dropSquare, diff, allSquares);
+		if (i == 1 || j == 1) {
+			return 1;
+		} else {
+			return -1;
+		}
 	}
 	if (type == 'k'){
 		//king move check
@@ -49,26 +56,51 @@ int Rules::isValidRookMove(int selectedSquare, int dropSquare, int diff, Square*
 		if (diff % 8 == 0) {
 			// selected square is rook being moved, drop square is empty or piece being captured
 			int mult = (diff > 0) ? 1 : -1;
+			selectedSquare = selectedSquare + (8 * mult);
 			while (selectedSquare != dropSquare) {
-				selectedSquare = selectedSquare + (8 * mult);
 				if (allSquares[selectedSquare]->piece->type != 'u'){
 					return -1;
 				}
+				selectedSquare = selectedSquare + (8 * mult);
 			}
 			return 1;
 		} else {
 			int mult = (diff > 0) ? 1 : -1;
+			selectedSquare = selectedSquare + (1 * mult);
 			while (selectedSquare != dropSquare){
-				selectedSquare = selectedSquare + (1 * mult);
 				if (allSquares[selectedSquare]->piece->type != 'u'){
 					return -1;
 				}
+				selectedSquare = selectedSquare + (1 * mult);
 			}
 			return 1;
 		}
 	} else {
 		return -1;
 	}
+}
+
+int Rules::isValidBishopMove(int selectedSquare, int dropSquare, int diff, Square* allSquares[64]) {
+	if (diff % 9 != 0 && diff % 7 != 0) { 
+		return -1;
+	}
+	int sqrMover = 0;
+	if (diff % 9 == 0) {
+		sqrMover = 9;
+	}
+	if (diff % 7 == 0) {
+		sqrMover = 7;
+	}
+	int mult = diff > 0 ? 1 : -1;
+	selectedSquare = selectedSquare + (sqrMover * mult);
+	while (selectedSquare != dropSquare) {
+		if (allSquares[selectedSquare]->piece->type != 'u'){
+			return -1;
+		}
+		selectedSquare = selectedSquare + (sqrMover * mult);
+	}
+
+	return 1;
 }
 
 int Rules::isValidKnightMove(int diff, Square* allSquares[64]) {
