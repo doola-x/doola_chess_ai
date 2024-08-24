@@ -24,7 +24,7 @@ class ChessValueNetwork(nn.Module):
         x = F.relu(self.bn2(self.fc1(x)))
         x = F.relu(self.bn3(self.fc2(x)))
         x = self.dropout(x)
-        x = torch.sigmoid(self.fc3(x))
+        x = torch.tanh(self.fc3(x))
         return x
 
 class ChessDataset(Dataset):
@@ -66,7 +66,7 @@ dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 model = ChessValueNetwork()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-criterion = nn.BCELoss()
+criterion = nn.MSELoss()
 
 num_epochs = 30
 log_interval = 10 
@@ -80,11 +80,18 @@ for epoch in range(num_epochs):
     for batch_idx, (board_states, correct_moves) in enumerate(dataloader):
         optimizer.zero_grad()
         outputs = model(board_states)
+        rounded_outputs = torch.round(outputs * 100) / 100
+        rounded_outputs = rounded_outputs.reshape(-1)
+        #print(f"rounded_outputs: {rounded_outputs}")
         #print(f"outputs: {outputs}")
-        outputs = outputs.reshape(-1)
+        #outputs = outputs.reshape(-1)
+        #dt_oupts = outputs.detach()
+        #dt_oupts = np.round(dt_oupts, 2)
+        #print(f"dt_oupts: {dt_oupts}")
         # Calculate loss
-        #print(f"correct moves as float: {correct_moves.type_as(outputs)}")
-        loss = criterion(outputs.type_as(correct_moves), correct_moves)
+        #print(f"outputs converted: {outputs.type_as(correct_moves)}")
+        #print(f"correct moves: {correct_moves}")
+        loss = criterion(rounded_outputs.type_as(correct_moves), correct_moves)
         total_loss += loss.item()
         
         # Perform backpropagation

@@ -33,6 +33,7 @@ def fen_to_tensor(fen):
     return torch.tensor(board_tensor)
 
 def read_and_process_files(directory):
+    count = 1
     for filename in os.listdir(directory):
         if filename.endswith(".txt"):
             filepath = os.path.join(directory, filename)
@@ -42,15 +43,14 @@ def read_and_process_files(directory):
                 content = file.read()
 
             # Split games based on two blank lines
-            tactics = content.strip().split('\n')
+            tactics = content.split('\n')
 
             # Process each game
-            count = 1
             for tactic in tactics:
                 parts = tactic.split(':')
                 #print(parts[0] + " <- fen move ->" + parts[1])
                 tensor = fen_to_tensor(parts[0])
-                float_val = float(parts[1])
+                float_val = (parts[1])
                 np.savez_compressed(f'../data/processed_value/{count}.npz', state=tensor, correct_move=float_val)
                 count+=1
 

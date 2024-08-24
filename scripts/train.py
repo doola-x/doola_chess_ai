@@ -12,7 +12,7 @@ import re
 from torch.utils.data import TensorDataset, DataLoader, Dataset
 from torch.nn.utils.rnn import pad_sequence
 
-directories = ('../data/processed_games_4', )
+directories = ('../data/processed_games_4', '../data/processed_games_3', '../data/processed_games_2', '../data/processed_games', '../data/processed_tactics')
 move_dict = '../data/moves.json'
 game_data = []
 

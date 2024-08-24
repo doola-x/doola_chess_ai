@@ -10,7 +10,7 @@ def append_to_file(file_path, text):
 def main():
 	engine_path = "../stockfish"
 	game_data = []
-	discount = 0.91
+	discount = 0.95
 	move_no = 0
 	with chess.engine.SimpleEngine.popen_uci(engine_path) as engine:
 		while True:
