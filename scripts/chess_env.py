@@ -53,7 +53,7 @@ class ChessEnvironment:
 				move = result.stdout.decode().strip()
 			self.board.push_san(move)
 		else:
-			result = self.engine.play(board, chess.engine.Limit(time=0.5))
+			result = self.engine.play(self.board, chess.engine.Limit(time=0.5))
 			self.board.push(result.move)
 			print(f"Stockfish plays: {result.move}")
 
@@ -98,18 +98,28 @@ class ChessEnvironment:
 
 	def is_legal_move(self, move):
 		try:
+			print(f'legal move: {move}')
 			self.board.push_san(move)
 			return False
 		except:
+			print(f'illegal move suggestion: {move}')
 			self.push_legal_move()
 			illegal = True
 
 	def push_legal_move(self):
 			moves = list(self.board.legal_moves)
+			if not moves:
+				return "done"
 			random_move = random.choice(moves)
+			print(f'random move selected: {random_move}')
 			self.board.push(random_move)
 
 	def step(self, move):
+		keys=['a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
+				'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
+				'bxa8', 'axb8', 'bxc8', 'cxb8', 'cxd8', 'exd8', 'exf8','fxe8', 'fxg8', 'gxf8', 'gxh8', 'hxg8',
+				'bxa1', 'axb1', 'bxc1', 'cxb1', 'cxd1', 'exd1', 'exf1','fxe1', 'fxg1', 'gxf1', 'gxh1', 'hxg1']
+		if (move in keys): move = move + '=Q'
 		illegal = self.is_legal_move(move)
 		# calculate reward fns
 		material_count = self.calc_material_count() # returns material balance, + for white adv - for black
@@ -120,7 +130,9 @@ class ChessEnvironment:
 		reward = (weights['material'] * material_count +
 	          weights['center'] * center_control +
 	          weights['king_safety'] * king_safety)
-		if (illegal == True): reward = reward * 0.1
+		if (illegal == True): reward = reward * 0.9
+		if (not done):
+			self.make_move('stockfish')
 		return reward, done
 
 	def __enter__(self):

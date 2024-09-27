@@ -10,13 +10,14 @@ actor = Actor()
 critic = Critic()
 actor.train()
 critic.train()
-actor.load_state_dict(torch.load('../models/model_epoch_30.pth'))
+actor.load_state_dict(torch.load('../models/ac/actor_epoch_82.pth'))
 critic.load_state_dict(torch.load('../models/value/model_epoch_30.pth'))
 
 actor_optimizer = optim.Adam(actor.parameters(), lr=0.001)
 critic_optimizer = optim.Adam(critic.parameters(), lr=0.001)
 
 env = ChessEnvironment()
+env.start_engine()
 
 piece_to_idx = {
     'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
@@ -117,7 +118,7 @@ def train_actor_critic(episodes):
                 moves += 1
             total_reward += reward
             print(f"total reward: {total_reward}")
-            if episode % 100 == 0 or total_reward < best_total_reward:
+            if episode % 100 == 0 or total_reward > best_total_reward:
                 best_total_reward = total_reward
                 torch.save(actor.state_dict(), f'../models/ac/actor_epoch_{episode+1}.pth')
                 torch.save(critic.state_dict(), f'../models/ac/critic_epoch_{episode+1}.pth')
@@ -129,3 +130,4 @@ def train_actor_critic(episodes):
 
 # Number of episodes to train
 train_actor_critic(1000)
+env.stop_engine()
