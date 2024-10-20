@@ -130,7 +130,7 @@ class ChessEnvironment:
 		reward = (weights['material'] * material_count +
 	          weights['center'] * center_control +
 	          weights['king_safety'] * king_safety)
-		if (illegal == True): reward = reward * 0.9
+		if (illegal == True): reward = reward * 0.7
 		if (not done):
 			self.make_move('stockfish')
 		return reward, done
