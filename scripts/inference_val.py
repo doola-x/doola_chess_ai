@@ -58,7 +58,7 @@ def fen_to_tensor(fen):
 
 def main(fen): 
 	model = ChessValueNetwork()
-	model.load_state_dict(torch.load('../models/value/model_epoch_15.pth'))
+	model.load_state_dict(torch.load('../models/value/model_epoch_30.pth'))
 	model.eval()
 	tensor = fen_to_tensor(fen)
 	tensor = tensor.unsqueeze(0)

@@ -55,7 +55,6 @@ class ChessEnvironment:
 		else:
 			result = self.engine.play(self.board, chess.engine.Limit(time=0.5))
 			self.board.push(result.move)
-			print(f"Stockfish plays: {result.move}")
 
 	def calc_material_count(self):
 		white_pawns = len(self.board.pieces(chess.PAWN, chess.WHITE))
@@ -98,20 +97,18 @@ class ChessEnvironment:
 
 	def is_legal_move(self, move):
 		try:
-			print(f'legal move: {move}')
 			self.board.push_san(move)
-			return False
+			self.board.pop()
+			return True
 		except:
-			print(f'illegal move suggestion: {move}')
-			self.push_legal_move()
-			illegal = True
+			#self.push_legal_move()
+			return False
 
 	def push_legal_move(self):
 			moves = list(self.board.legal_moves)
 			if not moves:
 				return "done"
 			random_move = random.choice(moves)
-			print(f'random move selected: {random_move}')
 			self.board.push(random_move)
 
 	def step(self, move):
@@ -120,19 +117,20 @@ class ChessEnvironment:
 				'bxa8', 'axb8', 'bxc8', 'cxb8', 'cxd8', 'exd8', 'exf8','fxe8', 'fxg8', 'gxf8', 'gxh8', 'hxg8',
 				'bxa1', 'axb1', 'bxc1', 'cxb1', 'cxd1', 'exd1', 'exf1','fxe1', 'fxg1', 'gxf1', 'gxh1', 'hxg1']
 		if (move in keys): move = move + '=Q'
-		illegal = self.is_legal_move(move)
+		self.board.push_san(move)
+		done = self.board.is_game_over()
+		if (not done):
+			self.make_move('stockfish')
 		# calculate reward fns
 		material_count = self.calc_material_count() # returns material balance, + for white adv - for black
 		king_safety = self.king_attackers() # counts who has more attackers on the other king, + -
 		center_control = self.center_attackers() # counts who has more attackers on the center, + -
-		done = self.board.is_game_over()
-		weights = {'material': 1.0, 'center': 0.5, 'king_safety': 0.8}
+		weights = {'material': 5.0, 'center': 0.2, 'king_safety': 0.8}
 		reward = (weights['material'] * material_count +
 	          weights['center'] * center_control +
 	          weights['king_safety'] * king_safety)
-		if (illegal == True): reward = reward * 0.7
-		if (not done):
-			self.make_move('stockfish')
+		#if (legal == False): reward = reward - (reward * .1)
+		done = self.board.is_game_over()
 		return reward, done
 
 	def __enter__(self):
