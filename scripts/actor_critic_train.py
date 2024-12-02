@@ -74,10 +74,10 @@ def train_actor_critic(episodes):
         done = False
         moves = 1
         while not done:
-            #tensor = fen_to_tensor(env.board.fen())
+            tensor = fen_to_tensor(env.board.fen())
             #print("Shape after fen_to_tensor:", tensor.shape)
             #tensor = tensor.repeat(2, 1, 1, 1)
-            probabilities = actor(fen_to_tensor(env.board.fen()))
+            probabilities = actor(tensor)
             probabilities = torch.flatten(probabilities)
             #print(f"probabilities: {probabilities}, probabilities shape: {probabilities.shape}")
             # Sort the probabilities in descending order
@@ -85,14 +85,17 @@ def train_actor_critic(episodes):
             moves_tosearch = []
             probs_tosearch = []
             moves_c = 0
+            print(f"len: {len(sorted_probs)}")
             for i in range(len(sorted_probs)):
                 #print(f"Probability shape: {sorted_probs.shape}, Index: {sorted_indices[i]}")
                 action = decode_move(sorted_indices[i])
-                #print(f"action: {action}")
+                print(f"action: {action}, i: {i}")
                 legal = env.is_legal_move(action)
                 if (legal):
                     moves_tosearch.append(action)
-                    idx_tosearch.append(probabilites[i])
+                    probs_tosearch.append(sorted_probs[i])
+                    if (len(moves_tosearch) > 30):
+                        break
                     #moves_c += 1
                     #if (moves_c == 5):
                     #    break
@@ -102,7 +105,7 @@ def train_actor_critic(episodes):
                     break"""
             #probability, predicted_move = torch.max(probabilities, dim=1)
             #print(probability)
-            move = random.choices(moves_tosearch, idx_tosearch, k=1)[0]
+            move = random.choices(moves_tosearch, probs_tosearch, k=1)[0]
             reward, done = env.step(moves_tosearch[n], moves)
             #print(reward)
             """next_tensor = fen_to_tensor(env.board.fen())
@@ -127,8 +130,7 @@ def train_actor_critic(episodes):
             #advantage = (target_value - current_value).detach()  # Stop gradient flow here
             #print("Advantage shape:", advantage.shape)
             #epsilon = 1e-8
-            probabilities = torch.nn.functional.softmax(probabilities, dim=-1)
-            log_prob = torch.log(probabilities[idx_tosearch[n]])
+            log_prob = torch.log(probs_tosearch[moves_tosearch.index(move)])
             actor_loss = (log_prob * reward) * (1/moves*2)
             total_loss += actor_loss
             #if actor_loss.dim() > 0:
@@ -140,7 +142,7 @@ def train_actor_critic(episodes):
             moves += 1
             total_reward += reward
             last_fen = env.board.fen()
-            print(f"predicted move: {moves_tosearch[n]}, prob log: {log_prob}, reward: {reward}, total actor loss: {total_loss}, total reward: {total_reward}\n", end="")
+            print(f"predicted move: {move}, prob log: {log_prob}, reward: {reward}, total actor loss: {total_loss}, total reward: {total_reward}\n", end="")
         outcome = env.board.outcome()
         if (outcome.winner == chess.WHITE):
             if (reward < 0):
