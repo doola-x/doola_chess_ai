@@ -1,5 +1,5 @@
 .DS_Store
 /SFML/
 /models/
-__pycache__/
+/scripts/__pycache__/
 /data

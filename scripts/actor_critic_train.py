@@ -83,7 +83,7 @@ def train_actor_critic(episodes):
             # Sort the probabilities in descending order
             sorted_probs, sorted_indices = torch.sort(probabilities, descending=True)
             moves_tosearch = []
-            idx_tosearch = []
+            probs_tosearch = []
             moves_c = 0
             for i in range(len(sorted_probs)):
                 #print(f"Probability shape: {sorted_probs.shape}, Index: {sorted_indices[i]}")
@@ -92,20 +92,17 @@ def train_actor_critic(episodes):
                 legal = env.is_legal_move(action)
                 if (legal):
                     moves_tosearch.append(action)
-                    idx_tosearch.append(i)
-                    moves_c += 1
-                    if (moves_c == 5):
-                        break
+                    idx_tosearch.append(probabilites[i])
+                    #moves_c += 1
+                    #if (moves_c == 5):
+                    #    break
                     """predicted_move = action
                     probability = sorted_probs[i]
                     prob_idx = i
                     break"""
             #probability, predicted_move = torch.max(probabilities, dim=1)
             #print(probability)
-            if (len(moves_tosearch) == 1):
-                n = 0
-            else:
-                n = random.randint(0, len(moves_tosearch) - 1)
+            move = random.choices(moves_tosearch, idx_tosearch, k=1)[0]
             reward, done = env.step(moves_tosearch[n], moves)
             #print(reward)
             """next_tensor = fen_to_tensor(env.board.fen())
