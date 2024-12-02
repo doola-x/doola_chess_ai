@@ -1,5 +1,7 @@
 import json
 import torch
+import chess
+import random
 import numpy as np
 import torch.optim as optim
 import torch.nn.functional as F
@@ -13,7 +15,7 @@ actor.train()
 actor.load_state_dict(torch.load('../models/model_epoch_3.pth'))
 #critic.load_state_dict(torch.load('../models/value/model_epoch_30.pth'))
 
-actor_optimizer = optim.Adam(actor.parameters(), lr=0.001)
+actor_optimizer = optim.Adam(actor.parameters(), lr=0.01)
 #critic_optimizer = optim.Adam(critic.parameters(), lr=0.001)
 
 env = ChessEnvironment()
@@ -70,30 +72,41 @@ def train_actor_critic(episodes):
         total_reward = 0
         total_loss = 0
         done = False
-        moves = 0
+        moves = 1
         while not done:
-            tensor = fen_to_tensor(env.board.fen())
+            #tensor = fen_to_tensor(env.board.fen())
             #print("Shape after fen_to_tensor:", tensor.shape)
             #tensor = tensor.repeat(2, 1, 1, 1)
-            probabilities = actor(tensor)
+            probabilities = actor(fen_to_tensor(env.board.fen()))
             probabilities = torch.flatten(probabilities)
             #print(f"probabilities: {probabilities}, probabilities shape: {probabilities.shape}")
             # Sort the probabilities in descending order
             sorted_probs, sorted_indices = torch.sort(probabilities, descending=True)
+            moves_tosearch = []
+            idx_tosearch = []
+            moves_c = 0
             for i in range(len(sorted_probs)):
                 #print(f"Probability shape: {sorted_probs.shape}, Index: {sorted_indices[i]}")
                 action = decode_move(sorted_indices[i])
                 #print(f"action: {action}")
                 legal = env.is_legal_move(action)
                 if (legal):
-                    predicted_move = action
+                    moves_tosearch.append(action)
+                    idx_tosearch.append(i)
+                    moves_c += 1
+                    if (moves_c == 5):
+                        break
+                    """predicted_move = action
                     probability = sorted_probs[i]
                     prob_idx = i
-                    break
+                    break"""
             #probability, predicted_move = torch.max(probabilities, dim=1)
             #print(probability)
-
-            reward, done = env.step(predicted_move)
+            if (len(moves_tosearch) == 1):
+                n = 0
+            else:
+                n = random.randint(0, len(moves_tosearch) - 1)
+            reward, done = env.step(moves_tosearch[n], moves)
             #print(reward)
             """next_tensor = fen_to_tensor(env.board.fen())
             tensor_dup = tensor.repeat(2, 1, 1, 1)
@@ -118,8 +131,8 @@ def train_actor_critic(episodes):
             #print("Advantage shape:", advantage.shape)
             #epsilon = 1e-8
             probabilities = torch.nn.functional.softmax(probabilities, dim=-1)
-            log_prob = torch.log(probabilities[prob_idx])
-            actor_loss = log_prob * reward
+            log_prob = torch.log(probabilities[idx_tosearch[n]])
+            actor_loss = (log_prob * reward) * (1/moves*2)
             total_loss += actor_loss
             #if actor_loss.dim() > 0:
             #    actor_loss = actor_loss.mean()
@@ -129,14 +142,25 @@ def train_actor_critic(episodes):
             actor_optimizer.step()
             moves += 1
             total_reward += reward
-            print(f"\r predicted move: {predicted_move}, prob log: {log_prob}, reward: {reward}, total actor loss: {total_loss}, total reward: {total_reward}", end="")
-            if episode % 10 == 0 or total_reward > best_total_reward:
-                best_total_reward = total_reward
-                torch.save(actor.state_dict(), f'../models/ac/actor_epoch_{episode+1}.pth')
-                #torch.save(critic.state_dict(), f'../models/ac/critic_epoch_{episode+1}.pth')
-        
+            last_fen = env.board.fen()
+            print(f"predicted move: {moves_tosearch[n]}, prob log: {log_prob}, reward: {reward}, total actor loss: {total_loss}, total reward: {total_reward}\n", end="")
+        outcome = env.board.outcome()
+        if (outcome.winner == chess.WHITE):
+            if (reward < 0):
+                reward *= -1
+            else:
+                reward *= 10
+        elif (outcome.winner == None):
+            #hm
+            reward = reward
+        else:
+            reward *= 2
+        if episode % 10 == 0 or total_reward > best_total_reward:
+            best_total_reward = total_reward
+            torch.save(actor.state_dict(), f'../models/ac/actor_epoch_{episode+1}.pth')
+            #torch.save(critic.state_dict(), f'../models/ac/critic_epoch_{episode+1}.pth')
         # Logging and monitoring
-        print(f'\nEpisode {episode}: Total Reward = {total_reward}')
+        print(f'\n======================================================================\nepisode {episode}: total reward = {total_reward}, last fen:{last_fen}, winner: {outcome.winner}, total moves: {moves}\n======================================================================\n')
 
 # Number of episodes to train
 train_actor_critic(1000)

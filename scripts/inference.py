@@ -97,7 +97,7 @@ def main(fen):
     model = ChessModel() 
 
     # Load the model weights
-    model.load_state_dict(torch.load('../models/ac/actor_epoch_52.pth'))
+    model.load_state_dict(torch.load('../models/ac/actor_epoch_11.pth'))
     model.eval()
 
     tensor = fen_to_tensor(fen)

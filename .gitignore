@@ -2,5 +2,4 @@
 /SFML/
 /models/
 __pycache__/
-/data/
-data/
+/data

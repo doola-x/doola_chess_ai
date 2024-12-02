@@ -47,10 +47,11 @@ class ChessEnvironment:
 
 	def make_move(self, player):
 		if player == "inference":
-			result = subprocess.run(f'/opt/homebrew/bin/python3.11 inference.py "{board.fen()}"', capture_output=True, shell=True)
-			print(f"result: {result}")
+			result = subprocess.run(f'/opt/homebrew/bin/python3.11 inference.py "{self.board.fen()}"', capture_output=True, shell=True)
+			#print(f"result: {result}")
 			if result.stdout:
 				move = result.stdout.decode().strip()
+			print(f"inference plays: {move}")
 			self.board.push_san(move)
 		else:
 			result = self.engine.play(self.board, chess.engine.Limit(time=0.5))
@@ -111,25 +112,25 @@ class ChessEnvironment:
 			random_move = random.choice(moves)
 			self.board.push(random_move)
 
-	def step(self, move):
+	def step(self, move, moves):
 		keys=['a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
 				'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
 				'bxa8', 'axb8', 'bxc8', 'cxb8', 'cxd8', 'exd8', 'exf8','fxe8', 'fxg8', 'gxf8', 'gxh8', 'hxg8',
 				'bxa1', 'axb1', 'bxc1', 'cxb1', 'cxd1', 'exd1', 'exf1','fxe1', 'fxg1', 'gxf1', 'gxh1', 'hxg1']
-		if (move in keys): move = move + '=Q'
+		#if (move in keys): move = move + '=Q'
 		self.board.push_san(move)
 		done = self.board.is_game_over()
-		if (not done):
-			self.make_move('stockfish')
 		# calculate reward fns
 		material_count = self.calc_material_count() # returns material balance, + for white adv - for black
 		king_safety = self.king_attackers() # counts who has more attackers on the other king, + -
 		center_control = self.center_attackers() # counts who has more attackers on the center, + -
-		weights = {'material': 5.0, 'center': 0.2, 'king_safety': 0.8}
+		weights = {'material': 2.0, 'center': 0.2, 'king_safety': 0.8}
 		reward = (weights['material'] * material_count +
 	          weights['center'] * center_control +
 	          weights['king_safety'] * king_safety)
 		#if (legal == False): reward = reward - (reward * .1)
+		if (not done):
+			self.make_move('inference')
 		done = self.board.is_game_over()
 		return reward, done
 
