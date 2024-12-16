@@ -105,20 +105,16 @@ class ChessEnvironment:
 			#self.push_legal_move()
 			return False
 
-	def push_legal_move(self):
+	def get_legal_move(self):
 			moves = list(self.board.legal_moves)
 			if not moves:
 				return "done"
 			random_move = random.choice(moves)
-			self.board.push(random_move)
+			return random_move
 
-	def step(self, move, moves):
-		keys=['a8', 'b8', 'c8', 'd8', 'e8', 'f8', 'g8', 'h8',
-				'a1', 'b1', 'c1', 'd1', 'e1', 'f1', 'g1', 'h1',
-				'bxa8', 'axb8', 'bxc8', 'cxb8', 'cxd8', 'exd8', 'exf8','fxe8', 'fxg8', 'gxf8', 'gxh8', 'hxg8',
-				'bxa1', 'axb1', 'bxc1', 'cxb1', 'cxd1', 'exd1', 'exf1','fxe1', 'fxg1', 'gxf1', 'gxh1', 'hxg1']
+	def step(self, move, moves, probing):
 		#if (move in keys): move = move + '=Q'
-		self.board.push_san(move)
+		self.board.push(move)
 		done = self.board.is_game_over()
 		# calculate reward fns
 		material_count = self.calc_material_count() # returns material balance, + for white adv - for black
@@ -130,8 +126,11 @@ class ChessEnvironment:
 	          weights['king_safety'] * king_safety)
 		#if (legal == False): reward = reward - (reward * .1)
 		if (not done):
-			self.make_move('inference')
+			self.make_move('stockfish')
 		done = self.board.is_game_over()
+		if (probing == True):
+			self.board.pop()
+			self.board.pop()
 		return reward, done
 
 	def __enter__(self):

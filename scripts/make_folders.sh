@@ -1,4 +1,4 @@
-for i in {1..10000}
+for i in {1..5000}
 do
-   mkdir "../data/processed_games_4/$i"
+   mkdir "../data/processed_0/$i"
 done
