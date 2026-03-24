@@ -4,6 +4,7 @@ import torch.nn as nn
 import numpy as np
 import json
 import chess
+from rl_arch import Actor
 
 move_dict = '../data/moves.json'
 
@@ -34,9 +35,38 @@ class ChessModel(nn.Module):
         x = self.fc(x)
         return x
 
-model = ChessModel()
+def load_model(model_path):
+    model = ChessModel() 
+    # Load the model weights
+    model.load_state_dict(torch.load(model_path))
+    model.eval()
+    return model
 
-def decode_move(value, filename='../data/moves.json'):
+def suggest_move(fen, model):
+    tensor = fen_to_tensor(fen)
+    tensor = tensor.unsqueeze(0)
+    board = chess.Board(fen)
+    move_val = float('-inf')
+    output = ''
+    with torch.no_grad():
+        prediction = model(tensor)
+        for row in prediction:
+            for i in range(len(row)):
+                if (row[i] > move_val):
+                    try:
+                        new_move = decode_move(i)
+                        board.push_san(new_move)
+                        #doesnt except, legal move
+                        move_val = row[i]
+                        #print(f'new legal move suggestion: {new_move}')
+                        output = new_move
+                        board.pop()
+                    except:
+                        #print(f'illegal move suggestion!')
+                        j = 0
+    return output
+
+def decode_move(value, filename='../data/moves0.json'):
     """Decodes a move from the model's output integer back to SAN notation by loading a mapping from a file."""
     try:
         with open(filename, 'r') as file:
@@ -94,10 +124,10 @@ def adjust_logits(logits, legal_moves_masks):
     return adjusted_logits
 
 def main(fen):
-    model = ChessModel() 
+    model = Actor() 
 
     # Load the model weights
-    model.load_state_dict(torch.load('../models/ac/actor_epoch_11.pth'))
+    model.load_state_dict(torch.load('../models/actor0_epoch_30.pth'))
     model.eval()
 
     tensor = fen_to_tensor(fen)

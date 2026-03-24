@@ -1,0 +1,53 @@
+# Default configuration — applies to all training modes.
+# Override specific sections in supervised.yaml / value.yaml / rl.yaml.
+# All paths are relative to the project root (where train.py lives).
+
+experiment: default
+device: auto   # auto → picks mps > cuda > cpu
+
+model:
+  in_channels: 13
+  conv_filters: 64
+  conv_kernel: 3
+  hidden_dim: 1024
+  hidden_dim2: 512
+  dropout: 0.3
+  num_moves: 4208          # Must match the moves_file vocabulary size
+
+training:
+  learning_rate: 0.001
+  batch_size: 32
+  num_epochs: 30
+  weight_decay: 0.0001
+  grad_clip: 1.0
+  save_every: 5
+  keep_best: true
+  val_split: 0.1
+  shuffle: true
+  num_workers: 0
+
+rl:
+  episodes: 10000
+  max_moves: 50
+  top_k: 10
+  discount: 0.95
+  stockfish_time: 0.01
+  reward_material: 2.0
+  reward_center: 0.2
+  reward_king_safety: 0.8
+  policy_checkpoint: null  # set to "models/policy/policy_best.pth" to warm-start
+
+data:
+  moves_file: data/moves0.json
+  policy_data_dir: data/processed_games_3
+  value_data_dir: data/processed_value
+  value_training_dir: data/value_training
+  raw_pgn_dir: data/raw_data
+  tactics_dir: data/tactics
+
+paths:
+  models_dir: models
+  stockfish: ./stockfish
+  policy_out: models/policy
+  value_out: models/value
+  rl_out: models/rl

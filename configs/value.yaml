@@ -1,0 +1,20 @@
+# Value network training (regression on Stockfish-labelled positions).
+# Run: python train.py --mode value --config configs/value.yaml
+#
+# Generate training data first:
+#   python process_data.py --mode stockfish_play  (collect games)
+#   python process_data.py --mode value           (convert to .npz)
+
+experiment: value_net
+
+training:
+  learning_rate: 0.001
+  batch_size: 64
+  num_epochs: 30
+  save_every: 5
+
+data:
+  value_data_dir: data/processed_value
+
+paths:
+  value_out: models/value

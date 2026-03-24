@@ -1,0 +1,16 @@
+# Behaviour cloning (supervised policy training from PGN games).
+# Run: python train.py --mode supervised --config configs/supervised.yaml
+
+experiment: supervised_bc
+
+training:
+  learning_rate: 0.001
+  batch_size: 64
+  num_epochs: 50
+  save_every: 5
+
+data:
+  policy_data_dir: data/processed_games_3
+
+paths:
+  policy_out: models/policy

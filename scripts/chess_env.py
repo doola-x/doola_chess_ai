@@ -2,6 +2,7 @@ import chess
 import chess.engine
 import subprocess
 import random
+from inference import load_model, suggest_move
 
 ''' 
 ====================================================================
@@ -24,6 +25,15 @@ need:
 		- return state
 			- current position
 			- draw, win, loss
+
+todo:
+	- currently reward function punishes losing games instead of losing moves.
+		- ideally, a move that influences material count in a negative way should affect reward
+		- material count should not persistently affect total reward
+	- games vs inference go for too long / never end -- games against stockfish end too quickly
+	- need to inspect outputs from middle game positions
+	- really, should we be training a middle game bot? trained on tactics and endgames
+		- opening model (model_epoch_3.pth) could hand off game to other model
 '''
 
 class ChessEnvironment:
@@ -31,6 +41,7 @@ class ChessEnvironment:
 		self.board = chess.Board()
 		self.engine_path = engine_path
 		self.engine = None
+		self.model = None
 
 	def start_engine(self):
 		self.engine = chess.engine.SimpleEngine.popen_uci(self.engine_path)
@@ -44,17 +55,20 @@ class ChessEnvironment:
 		self.board.reset()
 		color_det = random.random()
 		self.inf_is_white = True if color_det > 0.4999 else False
+		self.model = load_model('../models/model_epoch_3.pth')
 
-	def make_move(self, player):
+	def make_move(self, player, probing):
 		if player == "inference":
-			result = subprocess.run(f'/opt/homebrew/bin/python3.11 inference.py "{self.board.fen()}"', capture_output=True, shell=True)
+			#result = subprocess.run(f'/opt/homebrew/bin/python3.11 inference.py "{self.board.fen()}"', capture_output=True, shell=True)
 			#print(f"result: {result}")
-			if result.stdout:
-				move = result.stdout.decode().strip()
-			print(f"inference plays: {move}")
-			self.board.push_san(move)
+			result = suggest_move(self.board.fen(), self.model)
+			#if result.stdout:
+			#	move = result.stdout.decode().strip()
+			if (probing == False): 
+				print(f"inference plays: {result}")
+			self.board.push_san(result)
 		else:
-			result = self.engine.play(self.board, chess.engine.Limit(time=0.5))
+			result = self.engine.play(self.board, chess.engine.Limit(time=0.000001))
 			self.board.push(result.move)
 
 	def calc_material_count(self):
@@ -112,9 +126,10 @@ class ChessEnvironment:
 			random_move = random.choice(moves)
 			return random_move
 
-	def step(self, move, moves, probing):
+	def step(self, move, moves, last_reward=None, probing=False):
 		#if (move in keys): move = move + '=Q'
-		self.board.push(move)
+		#print(f"move: {move}")
+		self.board.push_uci(move)
 		done = self.board.is_game_over()
 		# calculate reward fns
 		material_count = self.calc_material_count() # returns material balance, + for white adv - for black
@@ -125,13 +140,15 @@ class ChessEnvironment:
 	          weights['center'] * center_control +
 	          weights['king_safety'] * king_safety)
 		#if (legal == False): reward = reward - (reward * .1)
-		if (not done):
-			self.make_move('stockfish')
+		if (last_reward != None):
+			reward_delta = reward - last_reward
+		else:
+			reward_delta = reward
 		done = self.board.is_game_over()
 		if (probing == True):
+			#self.board.pop()
 			self.board.pop()
-			self.board.pop()
-		return reward, done
+		return reward_delta, done
 
 	def __enter__(self):
 		self.start_engine()

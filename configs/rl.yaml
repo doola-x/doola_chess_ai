@@ -1,0 +1,26 @@
+# Actor-critic reinforcement learning.
+# Run: python train.py --mode rl --config configs/rl.yaml
+#
+# Warm-starting from a supervised policy is strongly recommended:
+#   rl:
+#     policy_checkpoint: models/policy/policy_best.pth
+
+experiment: rl_ac
+
+training:
+  learning_rate: 0.0001    # Lower LR for fine-tuning from pretrained policy
+  grad_clip: 0.5
+
+rl:
+  episodes: 20000
+  max_moves: 80
+  top_k: 10
+  discount: 0.99
+  stockfish_time: 0.05
+  reward_material: 1.0
+  reward_center: 0.3
+  reward_king_safety: 0.5
+  policy_checkpoint: models/policy/policy_best.pth
+
+paths:
+  rl_out: models/rl

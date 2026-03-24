@@ -12,7 +12,8 @@ from chess_env import ChessEnvironment
 # Initialize Actor
 actor = Actor()
 actor.train()
-actor.load_state_dict(torch.load('../models/actor0_epoch_9.pth'))
+actor.load_state_dict(torch.load('../models/actor0_epoch_30.pth'))
+
 
 # Initialize Optimizer
 actor_optimizer = optim.Adam(actor.parameters(), lr=0.01)
@@ -53,6 +54,8 @@ def decode_move(value, filename='../data/moves0.json'):
     try:
         with open(filename, 'r') as file:
             mapping = json.load(file)
+            if (type(value) is str):
+                return mapping[value]
             for key, val in mapping.items():
                 if val == value:
                     return key
@@ -69,63 +72,74 @@ def train_actor(episodes):
         total_loss = 0
         moves = 1
         done = False
+        last_reward = None
 
-        while not done:
-            tensor = fen_to_tensor(env.board.fen()).unsqueeze(0)  # [1, 13, 8, 8]
-            print(f"FEN Tensor Shape: {tensor.shape}")
-
+        while not done and moves < 50:
+            env.make_move('inference', False)
+            actor_optimizer.zero_grad()
+            tensor = fen_to_tensor(env.board.fen()).unsqueeze(0)  # [1, 8, 8, 13]
+            tensor = tensor.repeat(2, 1, 1, 1)
+            #print(f"FEN Tensor Shape: {tensor.shape}")
             probabilities = actor(tensor)
-            probabilities = F.softmax(torch.flatten(probabilities), dim=0)  # Normalize probabilities
-            top_k = torch.topk(probabilities, 5)
-
+            #print(f"probabilities tensor shape: {probabilities[0].shape}")
+            probabilities = F.softmax(torch.flatten(probabilities[0]), dim=0)  # Normalize probabilities
+            top_k = torch.topk(probabilities, 100)
+            #print(f"top k: {top_k}")
             reward_paths = []
             for i in range(len(top_k[0])):
                 action = decode_move(top_k[1][i].item())
+                #print(f"action: {action}")
                 if env.is_legal_move(action):
-                    potential_reward, done = env.step(action, top_k[1][i], True)
+                    potential_reward, done = env.step(action, top_k[1][i], None, True)
                     log_prob = torch.log(top_k[0][i])
                     reward_paths.append((potential_reward, log_prob, action))
 
             if len(reward_paths) == 0:
                 legal_action = env.get_legal_move()
+                #print(f"legal action type: {type(legal_action)}")
                 print(f"No valid reward paths. Using legal action: {legal_action}")
-                reward, done = env.step(legal_action, moves, False)
+                action = legal_action
+                reward, done = env.step(env.board.uci(legal_action), moves, last_reward, False)
+                ind = decode_move(str(legal_action))
+                log_prob = probabilities[ind]
+                #print(f"log prob: {log_prob}")
             else:
                 top_reward_paths = sorted(reward_paths, key=lambda x: x[0], reverse=True)
-                reward, done = env.step(top_reward_paths[0][2], moves, False)
+                action = top_reward_paths[0][2]
+                reward, done = env.step(top_reward_paths[0][2], moves, last_reward, False)
                 log_prob = top_reward_paths[0][1]
 
             # Update rewards and losses
-            total_reward += reward
-            actor_loss = -log_prob * total_reward / moves
+            total_reward += reward / moves
+            actor_loss = -log_prob * reward
             total_loss += actor_loss.item()
+            last_reward = reward
 
             # Backpropagate actor loss
-            actor_optimizer.zero_grad()
             actor_loss.backward()
             actor_optimizer.step()
 
-            print(f"Move {moves}: Action {top_reward_paths[0][2]}, Log Prob: {log_prob.item()}, Reward: {reward}, Total Reward: {total_reward}")
+            print(f"Move {moves}: Action {action}, Log Prob: {log_prob.item()}, Reward: {reward}, Total Reward: {total_reward}")
             moves += 1
 
         # Game outcome scaling
-        outcome = env.board.outcome()
+        """outcome = env.board.outcome()
         if outcome.winner == chess.WHITE:
             total_reward *= 10
         elif outcome.winner is None:
             total_reward = total_reward  # No change
         else:
-            total_reward *= 2
+            total_reward *= 2"""
 
         # Save model if reward improves
         if total_reward > best_total_reward:
             best_total_reward = total_reward
             torch.save(actor.state_dict(), f'../models/ac/actor_best.pth')
 
-        print(f"Episode {episode}, Total Reward: {total_reward:.2f}, Moves: {moves}, Winner: {outcome.winner}")
+        print(f"Episode {episode}, Total Reward: {total_reward:.2f}, Moves: {moves}")
 
     print("Training complete.")
 
 # Start training
-train_actor(1000)
+train_actor(10000)
 env.stop_engine()
