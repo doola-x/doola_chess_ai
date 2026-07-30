@@ -67,7 +67,7 @@ class DataConfig:
     # Move encoding
     moves_file: str = "data/moves0.json"   # UCI encoding (4208 moves)
     # Processed datasets
-    policy_data_dir: str = "data/processed_games_3"
+    policy_data_dir: str = "data/processed_games_4"
     value_data_dir: str = "data/processed_value"
     value_training_dir: str = "data/value_training"
     # Raw data

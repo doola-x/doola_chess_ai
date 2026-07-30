@@ -110,9 +110,15 @@ class ValueNet(nn.Module):
 
 # ─── Convenience loaders ──────────────────────────────────────────────────────
 
+def _torch_load(checkpoint: str, device: str):
+    from chess_ai.config import ModelConfig as _ModelConfig
+    with torch.serialization.safe_globals([_ModelConfig]):
+        return torch.load(checkpoint, map_location=device, weights_only=True)
+
+
 def load_policy(checkpoint: str, cfg: ModelConfig, device: str = "cpu") -> PolicyNet:
     model = PolicyNet(cfg).to(device)
-    state = torch.load(checkpoint, map_location=device)
+    state = _torch_load(checkpoint, device)
     # Accept both raw state_dicts and {"model": ...} checkpoint dicts
     if isinstance(state, dict) and "model" in state:
         state = state["model"]
@@ -123,7 +129,7 @@ def load_policy(checkpoint: str, cfg: ModelConfig, device: str = "cpu") -> Polic
 
 def load_value(checkpoint: str, cfg: ModelConfig, device: str = "cpu") -> ValueNet:
     model = ValueNet(cfg).to(device)
-    state = torch.load(checkpoint, map_location=device)
+    state = _torch_load(checkpoint, device)
     if isinstance(state, dict) and "model" in state:
         state = state["model"]
     model.load_state_dict(state)

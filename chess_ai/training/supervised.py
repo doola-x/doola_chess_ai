@@ -36,7 +36,7 @@ class PolicyTrainer:
         tc = cfg.training
 
         # ── Data ──────────────────────────────────────────────────────
-        full_dataset = PolicyDataset(cfg.data.policy_data_dir)
+        full_dataset = PolicyDataset(cfg.data.policy_data_dir, moves_file=cfg.data.moves_file)
         val_size = max(1, int(len(full_dataset) * tc.val_split))
         train_size = len(full_dataset) - val_size
         train_ds, val_ds = random_split(
@@ -44,9 +44,10 @@ class PolicyTrainer:
             [train_size, val_size],
             generator=torch.Generator().manual_seed(42),
         )
+        pin = self.device.type == "cuda"
         train_loader = DataLoader(
             train_ds, batch_size=tc.batch_size, shuffle=tc.shuffle,
-            num_workers=tc.num_workers, pin_memory=True,
+            num_workers=tc.num_workers, pin_memory=pin,
         )
         val_loader = DataLoader(
             val_ds, batch_size=tc.batch_size, shuffle=False,

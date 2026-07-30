@@ -10,7 +10,7 @@ training:
   save_every: 5
 
 data:
-  policy_data_dir: data/processed_games_3
+  policy_data_dir: data/processed_games_4
 
 paths:
   policy_out: models/policy

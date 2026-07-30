@@ -5,11 +5,15 @@ import numpy as np
 import json
 import chess
 
-move_dict = 'moves.json'
+piece_to_idx = {
+    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
+    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11,
+    ' ': 12  # Empty square
+}
 
+move_dict = 'moves.json'
 with open(move_dict, 'r') as file:
     move_dict = json.load(file)
-
 
 class ChessModel(nn.Module):
     def __init__(self):
@@ -34,8 +38,6 @@ class ChessModel(nn.Module):
         x = self.fc(x)
         return x
 
-model = ChessModel()
-
 def decode_move(value, filename='moves.json'):
     """Decodes a move from the model's output integer back to SAN notation by loading a mapping from a file."""
     try:
@@ -50,13 +52,6 @@ def decode_move(value, filename='moves.json'):
     except FileNotFoundError:
         raise FileNotFoundError(f"File {filename} not found.")
 
-piece_to_idx = {
-    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
-    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11,
-    ' ': 12  # Empty square
-}
-
-# Function to convert FEN to a tensor
 def fen_to_tensor(fen):
     board_tensor = np.zeros((8, 8, 13), dtype=np.float32)
     
@@ -93,13 +88,12 @@ def adjust_logits(logits, legal_moves_masks):
     adjusted_logits = logits + (inverse_mask.float() * illegal_moves_penalty)   
     return adjusted_logits
 
-def main(fen):
-    model = ChessModel() 
+def load_model(model_path):
+    model = ChessModel()
+    model.load_state_dict(torch.load(model_path))
+    return model
 
-    # Load the model weights
-    model.load_state_dict(torch.load('models/actor_epoch_15.pth'))
-    model.eval()
-
+def predict(fen, model):
     tensor = fen_to_tensor(fen)
     tensor = tensor.unsqueeze(0)
     move_val = float('-inf')
@@ -112,21 +106,16 @@ def main(fen):
                     board = chess.Board(fen)
                     try:
                         new_move = decode_move(i)
-                        board.push_san(new_move)
+                        move_obj = board.push_san(new_move)
                         #doesnt except, legal move
                         move_val = row[i]
                         #print(f'new legal move suggestion: {new_move}')
-                        output = new_move
+                        output = (chess.SQUARE_NAMES[move_obj.from_square], chess.SQUARE_NAMES[move_obj.to_square])
                     except:
                         #print(f'illegal move suggestion!')
                         j = 0
 
-
-        #predicted_move = prediction.argmax(dim=1)
-
-        # Convert the predicted move from its encoded format back to a standard move format
-        #decoded_move = decode_move(predicted_move.item())
-        print(f"{output}")
+        return output
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Predict the next chess move from a given board state.")
