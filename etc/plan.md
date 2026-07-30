@@ -40,3 +40,7 @@ what started off as a fully feed forward network evolved into custom loss functi
 tonight im cleaning up the cpp game code a little bit (lots of work to do here) and implementing socket handling for my inference script and the c++ executable to communicate. im re-building my professional site with sveltekit and hope to host the model in an environment that is actually usable before ? (summer? fall? how much work do i even have to do?)
 
 i can also implement a chess engine for c++ just for bragging rights, but thinking a quick fix for now is pass the move over through a socket to the play_inference python script and do a quick check for legality in the current position, and just send a bit flag over to the executable and allow play to continue. if the move is illegal, we bail 
+
+## update july 29 2026
+
+well i havent looked in here in a while. the amalgamation of scripts and half baked classes is somewhat embarrassing to look at, but it definitely ~works. i have seen some other examples of chess engines in the wild and i think what i was baking into training needs to be more of a _harness_ around the move generation model, rather than something the network actively generates results based on. the model should still be based one "my" moves, even though we have less and less examples of that as T steps forwards.

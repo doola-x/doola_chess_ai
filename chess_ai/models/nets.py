@@ -6,9 +6,9 @@ All models take input shape (B, 8, 8, 13). They permute internally to
 
 Architectures
 ─────────────
-PolicyNet   – outputs logits over the move vocabulary (for behaviour cloning
+PolicyNet   - outputs logits over the move vocabulary (for behaviour cloning
               or RL policy).  Uses softmax-compatible output (raw logits).
-ValueNet    – outputs a scalar in [0, 1] representing white's winning
+ValueNet    - outputs a scalar in [0, 1] representing white's winning
               probability.
 """
 from __future__ import annotations
