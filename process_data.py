@@ -61,6 +61,38 @@ def main():
         _run_stockfish_play(cfg, max_games=args.games)
 
 
+def _eval_to_value(engine, board, limit_time: float) -> float | None:
+    """
+    White-centric value in [-1, 1] for a position that has no game result yet.
+
+    Runs the logistic centipawn → win-probability curve so a truncated game's
+    label lands on the same scale as a real outcome. Returns None if the engine
+    gives us nothing usable.
+    """
+    import math
+
+    import chess.engine
+
+    try:
+        info = engine.analyse(board, chess.engine.Limit(time=limit_time))
+    except Exception:
+        return None
+
+    score = info.get("score")
+    if score is None:
+        return None
+    score = score.white()
+
+    if score.is_mate():
+        mate = score.mate()
+        return None if mate is None else (1.0 if mate > 0 else -1.0)
+
+    cp = score.score()
+    if cp is None:
+        return None
+    return 2.0 / (1.0 + math.exp(-0.00368208 * cp)) - 1.0
+
+
 def _run_stockfish_play(cfg, max_games: int | None):
     """
     Self-play loop: policy vs Stockfish, collecting (FEN, value) pairs.
@@ -98,19 +130,24 @@ def _run_stockfish_play(cfg, max_games: int | None):
     if policy_ckpt:
         inference = InferenceEngine(cfg, str(policy_ckpt))
 
-    discount = cfg.rl.discount
     n_games = 0
+    n_unlabelled = 0
 
     try:
         while max_games is None or n_games < max_games:
             board = chess.Board()
             history: list[tuple[str, chess.Color]] = []
+            # Alternate which side the policy plays. Stockfish beats it more or
+            # less every game, so pinning the policy to one colour makes every
+            # label lean the same way and the value net just learns "the side
+            # Stockfish is playing wins".
+            policy_color = chess.WHITE if n_games % 2 == 0 else chess.BLACK
 
             while not board.is_game_over():
                 if len(history) >= cfg.rl.max_moves * 2:
                     break
 
-                if board.turn == chess.BLACK and inference:
+                if board.turn == policy_color and inference:
                     move = inference.best_move(board)
                     if move is None or move not in board.legal_moves:
                         move = random.choice(list(board.legal_moves))
@@ -123,25 +160,31 @@ def _run_stockfish_play(cfg, max_games: int | None):
                 history.append((board.fen(), board.turn))
                 board.push(move)
 
-            # Determine outcome
-            res = board.result()
-            if res == "1-0":
-                final = 1.0
-            elif res == "0-1":
-                final = -1.0
-            else:
-                final = 0.0
+            # Label every position with Stockfish's eval *at that position*
+            # rather than a discounted final outcome. A discounted outcome is
+            # dominated by how far the position sits from the end of the game:
+            # at 40 plies out, discount**40 crushes any label toward neutral, so
+            # winning a queen in the opening looked the same as a quiet move and
+            # the net learned "how close is this to a finished game" instead of
+            # "who is better here".
+            #
+            # Labels stay white-centric (+1 = good for white) to match ValueNet's
+            # contract and the perspective flip in candidate_scores. Do NOT
+            # negate by side to move.
+            rows = []
+            for fen, _color in history:
+                val = _eval_to_value(stockfish, chess.Board(fen), cfg.rl.stockfish_time)
+                if val is not None:
+                    rows.append(f"{fen}:{val:.4f}\n")
 
-            # Compute discounted values and write to file
-            out_file = out_dir / f"stockfish_{n_games:06d}.txt"
+            if not rows:
+                n_unlabelled += 1
+                continue
+
+            side = "w" if policy_color == chess.WHITE else "b"
+            out_file = out_dir / f"stockfish_{n_games:06d}_{side}.txt"
             with open(out_file, "w") as f:
-                # Labels stay white-centric (+1 = good for white) to match
-                # ValueNet's contract and the perspective flip in
-                # InferenceEngine.candidate_scores. Do NOT negate by side to move.
-                for i, (fen, _color) in enumerate(reversed(history)):
-                    steps_from_end = i
-                    val = final * (discount ** steps_from_end)
-                    f.write(f"{fen}:{val:.4f}\n")
+                f.writelines(rows)
 
             n_games += 1
             if n_games % 100 == 0:
@@ -150,6 +193,8 @@ def _run_stockfish_play(cfg, max_games: int | None):
         stockfish.quit()
 
     print(f"Collected {n_games} games → {out_dir}")
+    if n_unlabelled:
+        print(f"  ({n_unlabelled} truncated games dropped — no usable eval)")
 
 
 if __name__ == "__main__":

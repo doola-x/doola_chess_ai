@@ -39,7 +39,7 @@ rl:
 
 data:
   moves_file: data/moves0.json
-  policy_data_dir: data/processed_games_3
+  policy_data_dir: data/processed_games_4
   value_data_dir: data/processed_value
   value_training_dir: data/value_training
   raw_pgn_dir: data/raw_data
