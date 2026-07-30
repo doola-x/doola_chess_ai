@@ -25,7 +25,9 @@ def parse_args():
     parser.add_argument("--top-k", type=int, default=5,
                         help="Consider only top-k policy moves (0 = all).")
     parser.add_argument("--value-weight", type=float, default=0.0,
-                        help="Blend policy with value-net lookahead (0–1).")
+                        help="How much the value net overrides the policy (0–1).")
+    parser.add_argument("--value-top-k", type=int, default=5,
+                        help="How many policy candidates the value net searches.")
     return parser.parse_args()
 
 
@@ -44,6 +46,7 @@ def main():
         temperature=args.temperature,
         top_k=args.top_k,
         value_weight=args.value_weight,
+        value_top_k=args.value_top_k,
     )
     server.serve_forever()
 

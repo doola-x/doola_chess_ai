@@ -135,11 +135,12 @@ def _run_stockfish_play(cfg, max_games: int | None):
             # Compute discounted values and write to file
             out_file = out_dir / f"stockfish_{n_games:06d}.txt"
             with open(out_file, "w") as f:
-                for i, (fen, color) in enumerate(reversed(history)):
+                # Labels stay white-centric (+1 = good for white) to match
+                # ValueNet's contract and the perspective flip in
+                # InferenceEngine.candidate_scores. Do NOT negate by side to move.
+                for i, (fen, _color) in enumerate(reversed(history)):
                     steps_from_end = i
                     val = final * (discount ** steps_from_end)
-                    if color == chess.BLACK:
-                        val = -val
                     f.write(f"{fen}:{val:.4f}\n")
 
             n_games += 1

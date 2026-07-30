@@ -45,6 +45,10 @@ class TrainingConfig:
     val_split: float = 0.1         # Fraction of data held out for validation
     shuffle: bool = True
     num_workers: int = 0
+    # Reuse worker processes across epochs instead of re-forking each one.
+    # Ignored when num_workers == 0. Leave on: re-forking a torch process
+    # every epoch is what makes num_workers > 0 thrash on low-RAM machines.
+    persistent_workers: bool = True
 
 
 @dataclass

@@ -44,6 +44,7 @@ class ChessServer:
         temperature: float = 1.0,
         top_k: int = 5,
         value_weight: float = 0.0,
+        value_top_k: int = 5,
     ):
         self.host = host
         self.port = port
@@ -52,6 +53,7 @@ class ChessServer:
             temperature=temperature,
             top_k=top_k,
             value_weight=value_weight,
+            value_top_k=value_top_k,
         )
         print(f"Chess server ready on {host}:{port}")
 

@@ -42,13 +42,18 @@ class ValueTrainer:
             full_dataset, [train_size, val_size],
             generator=torch.Generator().manual_seed(42),
         )
+        pin = self.device.type == "cuda"
+        # persistent_workers is only a legal kwarg when num_workers > 0.
+        worker_kwargs = (
+            {"persistent_workers": tc.persistent_workers} if tc.num_workers > 0 else {}
+        )
         train_loader = DataLoader(
             train_ds, batch_size=tc.batch_size, shuffle=tc.shuffle,
-            num_workers=tc.num_workers, pin_memory=True,
+            num_workers=tc.num_workers, pin_memory=pin, **worker_kwargs,
         )
         val_loader = DataLoader(
             val_ds, batch_size=tc.batch_size, shuffle=False,
-            num_workers=tc.num_workers,
+            num_workers=tc.num_workers, **worker_kwargs,
         )
         print(f"Train: {len(train_ds):,}  Val: {len(val_ds):,}  Device: {self.device}")
 
