@@ -111,9 +111,32 @@ class ValueNet(nn.Module):
 # ─── Convenience loaders ──────────────────────────────────────────────────────
 
 def _torch_load(checkpoint: str, device: str):
+    """
+    Load a checkpoint, tolerating the torch version on the deploy box.
+
+    Policy checkpoints embed a ModelConfig under "config", so weights_only=True
+    needs that class allowlisted. The allowlist API moved twice:
+
+        torch >= 2.5   torch.serialization.safe_globals      (context manager)
+        torch >= 2.4   torch.serialization.add_safe_globals  (process-global)
+        older          no allowlist at all — full unpickle
+
+    The last case drops weights_only, which is only acceptable because these are
+    our own checkpoints. Never point it at one you didn't train.
+    """
     from chess_ai.config import ModelConfig as _ModelConfig
-    with torch.serialization.safe_globals([_ModelConfig]):
+
+    safe_globals = getattr(torch.serialization, "safe_globals", None)
+    if safe_globals is not None:
+        with safe_globals([_ModelConfig]):
+            return torch.load(checkpoint, map_location=device, weights_only=True)
+
+    add_safe_globals = getattr(torch.serialization, "add_safe_globals", None)
+    if add_safe_globals is not None:
+        add_safe_globals([_ModelConfig])
         return torch.load(checkpoint, map_location=device, weights_only=True)
+
+    return torch.load(checkpoint, map_location=device)
 
 
 def load_policy(checkpoint: str, cfg: ModelConfig, device: str = "cpu") -> PolicyNet:

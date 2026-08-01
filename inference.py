@@ -1,125 +1,133 @@
+#!/usr/bin/env python3
+"""
+Server-side inference entry point for the Flask API.
+
+Drop-in for the previous ChessModel/LSTM version: it keeps the same two names
+(``load_model`` and ``predict``) and the same response shape, so app.py needs no
+change beyond the checkpoint path. Internally it now runs the current
+InferenceEngine — policy net as move generator, value net as judge.
+
+Flask usage (unchanged):
+
+    from inference import load_model, predict
+    model = load_model('models/policy/policy_best.pth')
+    model.eval()
+    result = predict(fen, model)     # -> ("g1", "f3")  or  "" if no move
+    return jsonify(result)
+
+Paths can be overridden with environment variables so the server does not have
+to match this repo's layout:
+
+    CHESS_CONFIG        configs/default.yaml
+    CHESS_POLICY_CKPT   models/policy/policy_best.pth
+    CHESS_VALUE_CKPT    models/value/value_best.pth   ("" disables the value net)
+    CHESS_VALUE_WEIGHT  0.3
+    CHESS_MOVES_FILE    overrides data.moves_file from the config
+
+CHESS_MOVES_FILE matters under a process manager: the move vocabulary path
+inside default.yaml is relative ("data/moves0.json"), so it only resolves when
+the working directory happens to be the repo root. Set it to an absolute path
+and the app no longer cares where gunicorn/systemd starts it.
+"""
+from __future__ import annotations
+
 import argparse
-import torch
-import torch.nn as nn
-import numpy as np
-import json
+import os
+from typing import Optional, Union
+
 import chess
 
-piece_to_idx = {
-    'P': 0, 'N': 1, 'B': 2, 'R': 3, 'Q': 4, 'K': 5,
-    'p': 6, 'n': 7, 'b': 8, 'r': 9, 'q': 10, 'k': 11,
-    ' ': 12  # Empty square
-}
+from chess_ai.config import Config
+from chess_ai.inference.engine import InferenceEngine
 
-move_dict = 'moves.json'
-with open(move_dict, 'r') as file:
-    move_dict = json.load(file)
+DEFAULT_CONFIG = os.environ.get("CHESS_CONFIG", "configs/default.yaml")
+DEFAULT_POLICY = os.environ.get("CHESS_POLICY_CKPT", "models/policy/policy_best.pth")
+DEFAULT_VALUE = os.environ.get("CHESS_VALUE_CKPT", "models/value/value_best.pth")
+DEFAULT_VALUE_WEIGHT = float(os.environ.get("CHESS_VALUE_WEIGHT", "0.3"))
 
-class ChessModel(nn.Module):
-    def __init__(self):
-        super(ChessModel, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels=13, out_channels=64, kernel_size=3, padding=1)
-        self.relu = nn.ReLU()
-        self.flatten = nn.Flatten()
-        # Assuming the output of conv layers is flattened, adjust the input size accordingly
-        # LSTM input dimensions: (batch_size, seq_len, features)
-        self.lstm = nn.LSTM(input_size=64 * 8 * 8, hidden_size=1024, num_layers=2, batch_first=True)
-        self.fc = nn.Linear(1024, 9010)
 
-    def forward(self, x):
-        x = x.permute(0, 3, 1, 2)  # Adjusting dimensions for the Conv2D layer
-        x = self.relu(self.conv1(x))  # Pass through the first convolutional layer and ReLU
-        x = self.flatten(x)  # Flatten the output to feed into LSTM
-        x = x.unsqueeze(1)  # Adjusting the shape for LSTM (batch_size, seq_len, features)
-        lstm_out, (hn, cn) = self.lstm(x)
-        # Using the last layer's hidden state. You mentioned using lstm_out, but usually hn[-1] is used
-        # Using lstm_out's last sequence output if the LSTM's `batch_first=True`
-        x = hn[-1]  # If you're sure about using lstm_out, replace `hn[-1]` with `lstm_out[:, -1, :]`
-        x = self.fc(x)
-        return x
+class Engine:
+    """
+    Thin wrapper around InferenceEngine.
 
-def decode_move(value, filename='moves.json'):
-    """Decodes a move from the model's output integer back to SAN notation by loading a mapping from a file."""
+    Exists so the Flask app's ``model.eval()`` call keeps working — the old
+    object was an nn.Module. eval() is a no-op here; the underlying nets are
+    already in eval mode after loading.
+    """
+
+    def __init__(self, engine: InferenceEngine):
+        self.engine = engine
+
+    def eval(self) -> "Engine":
+        return self
+
+    def best_move(self, board: chess.Board) -> Optional[chess.Move]:
+        return self.engine.best_move(board)
+
+
+def load_model(
+    model_path: str = DEFAULT_POLICY,
+    value_path: Optional[str] = DEFAULT_VALUE,
+    config_path: str = DEFAULT_CONFIG,
+    value_weight: float = DEFAULT_VALUE_WEIGHT,
+) -> Engine:
+    """Load the policy (and optionally value) nets and return a ready Engine."""
+    cfg = Config.from_yaml(config_path)
+
+    moves_file = os.environ.get("CHESS_MOVES_FILE")
+    if moves_file:
+        cfg.data.moves_file = moves_file
+
+    value_ckpt = value_path or None
+    if value_ckpt and not os.path.exists(value_ckpt):
+        value_ckpt = None
+    engine = InferenceEngine(
+        cfg,
+        model_path,
+        value_ckpt=value_ckpt,
+        value_weight=value_weight if value_ckpt else 0.0,
+    )
+    return Engine(engine)
+
+
+def predict(
+    fen: str, model: Engine
+) -> Union[tuple[str, str], tuple[str, str, str], str]:
+    """
+    Return ``(from_square, to_square)`` for the engine's chosen move, or
+    ``(from_square, to_square, promotion)`` when the move is a promotion —
+    promotion being one of "q", "r", "b", "n".
+
+    The third element is only present on promotions, so a front end that reads
+    just [0] and [1] keeps working unchanged.
+
+    Returns ``""`` when the position is invalid, already over, or has no legal
+    move — matching what the previous implementation returned so the front end
+    does not have to learn a new failure case.
+    """
     try:
-        with open(filename, 'r') as file:
-            mapping = json.load(file)
-            # Reverse the mapping to find the key by value
-            for key, val in mapping.items():
-                if val == value:
-                    return key
-            # If no matching value is found
-            raise ValueError(f"No move found for value {value}.")
-    except FileNotFoundError:
-        raise FileNotFoundError(f"File {filename} not found.")
+        board = chess.Board(fen)
+    except ValueError:
+        return ""
 
-def fen_to_tensor(fen):
-    board_tensor = np.zeros((8, 8, 13), dtype=np.float32)
-    
-    pieces, active_color, _, _, _, _ = fen.split(' ')
-    rows = pieces.split('/')
+    if board.is_game_over():
+        return ""
 
-    for i, row in enumerate(rows):
-        col = 0
-        for char in row:
-            if char.isdigit():
-                col += int(char)
-            else:
-                piece_idx = piece_to_idx[char]
-                board_tensor[i, col, piece_idx] = 1
-                col += 1
-                
-    if active_color == 'w':
-        board_tensor[:, :, 12] = 1  # Indicate active color is white
-    else:
-        board_tensor[:, :, 12] = 0  # Indicate active color is black
-    
-    return torch.tensor(board_tensor)
+    move = model.best_move(board)
+    if move is None:
+        return ""
 
-def adjust_logits(logits, legal_moves_masks):
-    """
-    Adjusts logits for a batch of game states, penalizing illegal moves.
-    
-    :param logits: A 2D tensor of logits from the model (batch_size x num_moves).
-    :param legal_moves_masks: A boolean tensor indicating legal moves (batch_size x num_moves).
-    :return: Adjusted logits.
-    """
-    illegal_moves_penalty = -1e9
-    inverse_mask = 1 - mask  # This subtracts each element in mask from 1, effectively inverting it
-    adjusted_logits = logits + (inverse_mask.float() * illegal_moves_penalty)   
-    return adjusted_logits
+    frm = chess.SQUARE_NAMES[move.from_square]
+    to = chess.SQUARE_NAMES[move.to_square]
+    if move.promotion is not None:
+        return (frm, to, chess.piece_symbol(move.promotion))
+    return (frm, to)
 
-def load_model(model_path):
-    model = ChessModel()
-    model.load_state_dict(torch.load(model_path))
-    return model
-
-def predict(fen, model):
-    tensor = fen_to_tensor(fen)
-    tensor = tensor.unsqueeze(0)
-    move_val = float('-inf')
-    output = ''
-    with torch.no_grad():
-        prediction = model(tensor)
-        for row in prediction:
-            for i in range(len(row)):
-                if (row[i] > move_val):
-                    board = chess.Board(fen)
-                    try:
-                        new_move = decode_move(i)
-                        move_obj = board.push_san(new_move)
-                        #doesnt except, legal move
-                        move_val = row[i]
-                        #print(f'new legal move suggestion: {new_move}')
-                        output = (chess.SQUARE_NAMES[move_obj.from_square], chess.SQUARE_NAMES[move_obj.to_square])
-                    except:
-                        #print(f'illegal move suggestion!')
-                        j = 0
-
-        return output
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Predict the next chess move from a given board state.")
-    parser.add_argument("fen", help="FEN string representing the board state")
+    parser = argparse.ArgumentParser(
+        description="Predict the next chess move from a given board state."
+    )
+    parser.add_argument("fen", help="Full 6-field FEN string.")
     args = parser.parse_args()
-    
-    main(args.fen)
+    print(predict(args.fen, load_model()))
